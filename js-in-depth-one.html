@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A complete senior-level browser async JavaScript internals book, interview trainer, quiz, diagrams, and execution examples in one single HTML file." />
+  <title>Browser Async JavaScript Internals — Senior Interview Book</title>
+  <style>
+    :root{
+      --bg:#070b16;
+      --bg2:#0b1326;
+      --paper:#111a31;
+      --paper2:#151f3a;
+      --glass:rgba(255,255,255,.075);
+      --glass2:rgba(255,255,255,.115);
+      --line:rgba(255,255,255,.13);
+      --text:#edf5ff;
+      --muted:#a9b7d3;
+      --faint:#7f8ba7;
+      --brand:#8b5cf6;
+      --brand2:#06b6d4;
+      --green:#34d399;
+      --yellow:#fbbf24;
+      --red:#fb7185;
+      --blue:#60a5fa;
+      --code:#06101f;
+      --codeLine:rgba(255,255,255,.08);
+      --shadow:0 28px 90px rgba(0,0,0,.42);
+      --shadow2:0 20px 60px rgba(8,12,28,.36);
+      --radius:26px;
+      --radius2:18px;
+      --max:1220px;
+      --sidebar:310px;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    }
+    body.light{
+      --bg:#f5f7ff;
+      --bg2:#ffffff;
+      --paper:#ffffff;
+      --paper2:#f8faff;
+      --glass:rgba(9,17,33,.055);
+      --glass2:rgba(9,17,33,.09);
+      --line:rgba(15,23,42,.12);
+      --text:#111827;
+      --muted:#475569;
+      --faint:#64748b;
+      --code:#0b1020;
+      --codeLine:rgba(255,255,255,.08);
+      --shadow:0 28px 90px rgba(30,41,59,.14);
+      --shadow2:0 20px 50px rgba(30,41,59,.12);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:90px}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(circle at 10% -5%, rgba(139,92,246,.34), transparent 32%),
+        radial-gradient(circle at 95% 2%, rgba(6,182,212,.25), transparent 30%),
+        radial-gradient(circle at 50% 110%, rgba(52,211,153,.13), transparent 35%),
+        linear-gradient(180deg,var(--bg),#040711 76%);
+      overflow-x:hidden;
+    }
+    body.light{
+      background:
+        radial-gradient(circle at 8% -8%, rgba(139,92,246,.18), transparent 31%),
+        radial-gradient(circle at 95% 2%, rgba(6,182,212,.16), transparent 28%),
+        radial-gradient(circle at 50% 110%, rgba(52,211,153,.13), transparent 34%),
+        linear-gradient(180deg,#f5f7ff,#eef3ff 80%);
+    }
+    a{color:inherit;text-decoration:none}
+    p{line-height:1.78;color:var(--muted);font-size:1.02rem;margin:0 0 1rem}
+    h1,h2,h3,h4{margin:0;color:var(--text);letter-spacing:-.04em}
+    h1{font-size:clamp(2.55rem,6vw,6.6rem);line-height:.93;max-width:970px}
+    h2{font-size:clamp(2rem,3.8vw,4rem);line-height:1.02;margin-bottom:1rem}
+    h3{font-size:clamp(1.35rem,2vw,2rem);line-height:1.14;margin-bottom:.72rem}
+    h4{font-size:1.04rem;letter-spacing:-.02em;margin-bottom:.45rem}
+    code,kbd{font-family:var(--mono)}
+    .skip{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
+    .skip:focus{left:18px;top:18px;width:auto;height:auto;z-index:9999;padding:.8rem 1rem;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+    .grain:before{
+      content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.22;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
+    }
+    .topbar{
+      position:sticky;top:0;z-index:1000;
+      backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(90deg,rgba(7,11,22,.74),rgba(11,19,38,.58));
+    }
+    body.light .topbar{background:rgba(255,255,255,.75)}
+    .topbar-inner{max-width:var(--max);margin:0 auto;padding:.82rem 1.25rem;display:flex;align-items:center;gap:1rem;justify-content:space-between}
+    .brand{display:flex;align-items:center;gap:.78rem;font-weight:900;letter-spacing:-.04em;min-width:0}
+    .logo{width:42px;height:42px;border-radius:15px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;box-shadow:0 12px 34px rgba(139,92,246,.35);flex:0 0 auto}
+    .logo svg{width:25px;height:25px;color:#fff}
+    .brand-title{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+    .brand-title span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
+    .brand-title small{font-weight:700;color:var(--muted);letter-spacing:0;font-size:.72rem;margin-top:.18rem}
+    .top-actions{display:flex;align-items:center;gap:.62rem}
+    .btn{
+      border:1px solid var(--line);background:var(--glass);color:var(--text);border-radius:999px;padding:.75rem 1rem;font-weight:850;cursor:pointer;display:inline-flex;align-items:center;gap:.45rem;transition:.22s ease;font-size:.9rem;white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-2px);background:var(--glass2);border-color:rgba(255,255,255,.25)}
+    body.light .btn:hover{border-color:rgba(15,23,42,.22)}
+    .btn.primary{border:0;background:linear-gradient(135deg,var(--brand),var(--brand2));color:white;box-shadow:0 18px 44px rgba(6,182,212,.16)}
+    .btn.small{padding:.55rem .76rem;font-size:.82rem}
+    .hamb{display:none}
+    .progress{height:3px;background:linear-gradient(90deg,var(--brand),var(--brand2),var(--green));transform-origin:left;width:0%;transition:width .05s linear}
+    .layout{max-width:var(--max);margin:0 auto;display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);gap:1.3rem;padding:1.25rem}
+    .sidebar{position:sticky;top:83px;height:calc(100vh - 100px);overflow:auto;padding:.8rem;border:1px solid var(--line);border-radius:24px;background:rgba(255,255,255,.055);box-shadow:var(--shadow2)}
+    body.light .sidebar{background:rgba(255,255,255,.72)}
+    .sidebar::-webkit-scrollbar{width:7px}.sidebar::-webkit-scrollbar-thumb{background:var(--glass2);border-radius:99px}
+    .search-wrap{position:relative;margin:.2rem 0 .9rem}
+    .search-wrap input{width:100%;border:1px solid var(--line);border-radius:18px;background:rgba(0,0,0,.16);color:var(--text);padding:.9rem .95rem .9rem 2.45rem;outline:none;font-weight:700}
+    body.light .search-wrap input{background:#fff}
+    .search-wrap svg{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--faint)}
+    .nav-section-title{font-size:.72rem;color:var(--faint);text-transform:uppercase;letter-spacing:.16em;font-weight:950;margin:1.05rem .65rem .45rem}
+    .toc a{display:flex;align-items:center;gap:.65rem;padding:.72rem .75rem;border-radius:16px;color:var(--muted);font-size:.9rem;font-weight:750;margin:.15rem 0;transition:.18s ease;border:1px solid transparent}
+    .toc a .num{width:28px;height:28px;border-radius:10px;background:var(--glass);display:grid;place-items:center;color:var(--text);font-size:.76rem;flex:0 0 auto}
+    .toc a:hover,.toc a.active{background:var(--glass2);color:var(--text);border-color:var(--line);transform:translateX(2px)}
+    .sidebar-footer{margin-top:1rem;padding:.85rem;border-radius:18px;border:1px solid var(--line);background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(6,182,212,.09))}
+    .sidebar-footer strong{display:block;font-size:.9rem;margin-bottom:.35rem}.sidebar-footer small{color:var(--muted);line-height:1.55;display:block}
+    main{min-width:0}
+    .hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:34px;background:linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.045));box-shadow:var(--shadow);padding:clamp(2rem,5vw,4.5rem);min-height:680px;display:grid;align-items:center}
+    body.light .hero{background:rgba(255,255,255,.72)}
+    .hero:before{content:"";position:absolute;width:580px;height:580px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 62%);right:-230px;top:-230px;filter:blur(4px)}
+    .hero:after{content:"";position:absolute;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,.23),transparent 63%);left:-230px;bottom:-230px;filter:blur(4px)}
+    .hero-content{position:relative;z-index:1}
+    .eyebrow{display:inline-flex;align-items:center;gap:.55rem;padding:.55rem .85rem;border:1px solid var(--line);background:var(--glass);border-radius:999px;color:var(--muted);font-weight:850;font-size:.85rem;margin-bottom:1.1rem}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 7px rgba(52,211,153,.13)}
+    .gradient-text{background:linear-gradient(135deg,#fff,var(--brand2) 40%,var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+    body.light .gradient-text{background:linear-gradient(135deg,#111827,var(--brand),#0891b2);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{font-size:clamp(1.02rem,1.5vw,1.3rem);max-width:790px;color:var(--muted);margin:1.25rem 0 1.4rem;line-height:1.78}
+    .hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.82rem;margin:1.6rem 0;max-width:900px}
+    .metric{padding:1rem;border:1px solid var(--line);border-radius:20px;background:rgba(0,0,0,.12)}
+    body.light .metric{background:rgba(255,255,255,.55)}
+    .metric strong{display:block;font-size:1.45rem;letter-spacing:-.05em}.metric span{display:block;color:var(--muted);font-size:.82rem;margin-top:.25rem;font-weight:700}
+    .hero-actions{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.2rem}
+    .page{margin-top:1.3rem;border:1px solid var(--line);border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.045));box-shadow:var(--shadow2);overflow:hidden}
+    body.light .page{background:rgba(255,255,255,.78)}
+    .page-inner{padding:clamp(1.35rem,3.4vw,3rem)}
+    .page-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.3rem}
+    .chapter-kicker{display:inline-flex;align-items:center;gap:.55rem;color:var(--brand2);font-weight:950;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.8rem}
+    .chapter-no{width:46px;height:46px;border-radius:17px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;color:white;font-weight:950;box-shadow:0 16px 35px rgba(139,92,246,.24);flex:0 0 auto}
+    .lead{font-size:1.14rem;color:var(--muted);max-width:860px;line-height:1.75}
+    .divider{height:1px;background:var(--line);margin:1.55rem 0}
+    .pill-row{display:flex;flex-wrap:wrap;gap:.5rem;margin:.85rem 0 1.2rem}.pill{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:.45rem .7rem;font-size:.78rem;color:var(--muted);font-weight:850}
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1.2rem 0}.cards.two{grid-template-columns:repeat(2,1fr)}.cards.four{grid-template-columns:repeat(4,1fr)}
+    .card{border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.055);padding:1.15rem;position:relative;overflow:hidden}
+    body.light .card{background:rgba(248,250,252,.72)}
+    .card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--brand),var(--brand2),var(--green));opacity:.72}
+    .card p,.card li{font-size:.95rem}.card ul{margin:.7rem 0 0;padding-left:1.1rem;color:var(--muted);line-height:1.75}.card li{margin:.25rem 0}.card .icon{font-size:1.35rem;margin-bottom:.55rem;display:inline-block}.card strong{color:var(--text)}
+    .callout{border:1px solid var(--line);border-radius:23px;padding:1.05rem 1.15rem;background:linear-gradient(135deg,rgba(139,92,246,.13),rgba(6,182,212,.08));margin:1.15rem 0;display:flex;gap:.85rem;align-items:flex-start}
+    .callout.warn{background:linear-gradient(135deg,rgba(251,191,36,.14),rgba(251,113,133,.08))}.callout.good{background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(6,182,212,.08))}
+    .callout .mark{width:32px;height:32px;border-radius:12px;background:var(--glass2);display:grid;place-items:center;flex:0 0 auto}.callout p{margin:0;font-size:.98rem}
+    .diagram{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,rgba(0,0,0,.19),rgba(0,0,0,.08));padding:1.1rem;margin:1.15rem 0;overflow:auto}
+    body.light .diagram{background:linear-gradient(180deg,rgba(248,250,252,.95),rgba(241,245,249,.75))}
+    .diagram-title{display:flex;align-items:center;gap:.55rem;font-weight:950;margin-bottom:.9rem;color:var(--text)}
+    .flow{min-width:680px;display:flex;align-items:stretch;gap:.7rem}.flow.vertical{min-width:0;display:grid;grid-template-columns:1fr;max-width:760px;margin:auto}.flow-node{border:1px solid var(--line);background:var(--glass);border-radius:18px;padding:.9rem;text-align:center;display:grid;place-items:center;min-height:75px;font-weight:900;color:var(--text);position:relative}.flow-node small{display:block;color:var(--muted);font-weight:700;margin-top:.25rem}.arrow{display:grid;place-items:center;color:var(--brand2);font-weight:950;font-size:1.45rem;min-width:28px}.flow.vertical .arrow{min-height:22px;transform:rotate(90deg)}
+    .tree{font-family:var(--mono);white-space:pre;line-height:1.55;color:#dce7ff;font-size:.92rem;min-width:max-content;margin:0}.light .tree{color:#1e293b}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;margin:1.1rem 0}
+    .codebox{border:1px solid var(--line);border-radius:22px;background:var(--code);overflow:hidden;margin:1rem 0;box-shadow:0 18px 50px rgba(0,0,0,.18)}
+    .code-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.75rem .9rem;border-bottom:1px solid var(--codeLine);color:#d7e6ff;background:rgba(255,255,255,.04)}
+    .traffic{display:flex;gap:.38rem}.traffic span{width:11px;height:11px;border-radius:50%;display:inline-block}.traffic span:nth-child(1){background:#ff5f56}.traffic span:nth-child(2){background:#ffbd2e}.traffic span:nth-child(3){background:#27c93f}.code-title{font-size:.82rem;font-weight:850;color:#b7c7e8}.copy{border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);color:#e8f1ff;border-radius:12px;padding:.43rem .62rem;font-weight:850;cursor:pointer;font-size:.75rem}.copy:hover{background:rgba(255,255,255,.13)}
+    pre{margin:0;padding:1rem;overflow:auto;color:#e7f0ff;font-family:var(--mono);font-size:.88rem;line-height:1.62}.tok-key{color:#c084fc}.tok-fn{color:#67e8f9}.tok-str{color:#86efac}.tok-com{color:#94a3b8}.tok-num{color:#fbbf24}.tok-var{color:#fda4af}
+    .timeline{display:grid;gap:.7rem;margin:1.15rem 0}.step{display:grid;grid-template-columns:46px 1fr;gap:.85rem;align-items:start}.step-num{width:46px;height:46px;border-radius:16px;background:var(--glass2);border:1px solid var(--line);display:grid;place-items:center;font-weight:950;color:var(--brand2)}.step-body{border:1px solid var(--line);background:var(--glass);border-radius:19px;padding:.9rem 1rem}.step-body p{font-size:.95rem;margin:0}.step-body strong{display:block;margin-bottom:.18rem}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:22px;margin:1rem 0}table{width:100%;border-collapse:collapse;min-width:640px;background:rgba(255,255,255,.035)}th,td{border-bottom:1px solid var(--line);padding:.9rem;text-align:left;vertical-align:top;color:var(--muted);line-height:1.55}th{color:var(--text);font-size:.82rem;text-transform:uppercase;letter-spacing:.1em;background:var(--glass)}tr:last-child td{border-bottom:0}td strong{color:var(--text)}
+    .interview{border:1px solid var(--line);border-radius:26px;background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(139,92,246,.08));padding:1.1rem;margin:1.2rem 0}.interview h3{display:flex;align-items:center;gap:.55rem}.answer-box{border:1px solid var(--line);border-radius:20px;background:rgba(0,0,0,.14);padding:1rem;margin:.85rem 0}.light .answer-box{background:rgba(255,255,255,.58)}.answer-box p{margin-bottom:.7rem}.answer-box p:last-child{margin-bottom:0}
+    details{border:1px solid var(--line);border-radius:18px;background:var(--glass);margin:.7rem 0;overflow:hidden}summary{padding:.9rem 1rem;cursor:pointer;font-weight:900;color:var(--text)}details[open] summary{border-bottom:1px solid var(--line)}details .details-body{padding:1rem}.details-body p:last-child{margin-bottom:0}
+    .quiz-panel{border:1px solid var(--line);border-radius:30px;background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(6,182,212,.09));padding:1.2rem;margin:1.3rem 0}.quiz-meta{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.8rem 0}.badge{border:1px solid var(--line);border-radius:999px;background:var(--glass);padding:.38rem .62rem;font-size:.75rem;font-weight:900;color:var(--muted)}.q-card{border:1px solid var(--line);border-radius:22px;background:rgba(0,0,0,.12);padding:1rem;margin:.85rem 0}.light .q-card{background:rgba(255,255,255,.58)}.q-title{font-weight:950;margin-bottom:.75rem;color:var(--text)}.options{display:grid;gap:.55rem}.option{border:1px solid var(--line);border-radius:16px;background:var(--glass);padding:.75rem .85rem;cursor:pointer;color:var(--muted);font-weight:760;transition:.15s ease}.option:hover{background:var(--glass2);color:var(--text)}.option.correct{border-color:rgba(52,211,153,.7);background:rgba(52,211,153,.15);color:var(--text)}.option.wrong{border-color:rgba(251,113,133,.7);background:rgba(251,113,133,.13);color:var(--text)}.explanation{display:none;margin-top:.75rem;border-top:1px solid var(--line);padding-top:.75rem;color:var(--muted);line-height:1.65}.q-card.answered .explanation{display:block}
+    .flashcards{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin:1.1rem 0}.flashcard{perspective:1000px;min-height:170px}.flash-inner{position:relative;width:100%;height:100%;min-height:170px;transition:transform .55s;transform-style:preserve-3d}.flashcard.flipped .flash-inner{transform:rotateY(180deg)}.flash-front,.flash-back{position:absolute;inset:0;border:1px solid var(--line);border-radius:22px;padding:1rem;background:var(--glass);backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center}.flash-back{transform:rotateY(180deg);background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(6,182,212,.08))}.flash-front strong,.flash-back strong{font-size:1.08rem;margin-bottom:.5rem}.flash-front small,.flash-back small{color:var(--muted);line-height:1.55}
+    .matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin:1.1rem 0}.compare{border:1px solid var(--line);border-radius:24px;padding:1.1rem;background:var(--glass)}.compare h3{margin-bottom:.6rem}.compare ul{margin:.6rem 0 0;padding-left:1.1rem;color:var(--muted);line-height:1.8}
+    .footer{margin:1.3rem 0 0;padding:2rem;border:1px solid var(--line);border-radius:30px;background:var(--glass);text-align:center;color:var(--muted)}
+    .floating-tools{position:fixed;right:1rem;bottom:1rem;display:grid;gap:.55rem;z-index:999}.fab{width:48px;height:48px;border-radius:18px;border:1px solid var(--line);background:rgba(17,26,49,.82);backdrop-filter:blur(20px);color:var(--text);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow2)}body.light .fab{background:rgba(255,255,255,.82)}.fab:hover{transform:translateY(-2px)}
+    .hidden-by-search{display:none!important}.mark-hit{background:rgba(251,191,36,.28);border-radius:5px;padding:0 .1rem}
+    @media (max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;z-index:1100;top:0;left:0;height:100vh;width:min(88vw,340px);border-radius:0 26px 26px 0;transform:translateX(-105%);transition:.25s ease;background:rgba(7,11,22,.94);backdrop-filter:blur(20px)}body.light .sidebar{background:rgba(255,255,255,.96)}.sidebar.open{transform:translateX(0)}.hamb{display:inline-flex}.hero-grid{grid-template-columns:repeat(2,1fr)}.cards,.cards.two,.cards.four,.split,.matrix,.flashcards{grid-template-columns:1fr}.top-actions .hide-sm{display:none}.brand-title span:first-child{max-width:230px}}
+    @media (max-width:650px){.topbar-inner{padding:.75rem}.layout{padding:.75rem}.hero{border-radius:26px;min-height:auto;padding:1.5rem}.page{border-radius:24px}.page-inner{padding:1.15rem}.hero-grid{grid-template-columns:1fr}.metric{padding:.85rem}.btn{padding:.68rem .78rem;font-size:.82rem}.top-actions{gap:.38rem}.brand-title small{display:none}.logo{width:38px;height:38px}.page-head{display:block}.chapter-no{margin-bottom:.8rem}pre{font-size:.78rem}.flow{min-width:600px}.cards{gap:.75rem}.callout{display:block}.callout .mark{margin-bottom:.7rem}.floating-tools{right:.7rem;bottom:.7rem}.fab{width:43px;height:43px;border-radius:15px}}
+    @media print{
+      .topbar,.sidebar,.floating-tools,.hero-actions,.copy,.quiz-panel .btn{display:none!important}
+      body{background:white!important;color:#111!important}.layout{display:block;max-width:none;padding:0}.hero,.page,.footer{box-shadow:none!important;border:1px solid #ddd!important;break-inside:avoid;background:white!important}.page{page-break-before:auto}.page-inner,.hero{padding:28px!important}.gradient-text{color:#111!important;background:none!important;-webkit-text-fill-color:#111}.tree,pre{white-space:pre-wrap;color:#111!important}.codebox{background:#fff!important}.code-top{background:#f4f4f4!important;color:#111!important}p,td,li,small{color:#333!important}.btn{display:none!important}
+    }
+  </style>
+</head>
+<body class="grain">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#cover" aria-label="Go to cover">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 17.5 12 3l8 14.5"/><path d="M7.5 13h9"/><path d="M12 3v18"/></svg>
+      </span>
+      <span class="brand-title">
+        <span>Browser Async JS Internals</span>
+        <small>Senior Frontend Interview Book · V2</small>
+      </span>
+    </a>
+    <div class="top-actions">
+      <button class="btn small hamb" id="menuBtn" type="button">☰ Menu</button>
+      <button class="btn small hide-sm" id="expandBtn" type="button">Expand all</button>
+      <button class="btn small" id="themeBtn" type="button">🌙 Theme</button>
+      <button class="btn small primary hide-sm" onclick="window.print()" type="button">Print / PDF</button>
+    </div>
+  </div>
+  <div class="progress" id="progress"></div>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Table of contents">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.2-4.2"/></svg>
+      <input id="search" type="search" placeholder="Search chapters, queues, async..." />
+    </div>
+    <div class="nav-section-title">Book Navigation</div>
+    <nav class="toc" id="toc">
+      <a href="#cover"><span class="num">00</span><span>Cover</span></a>
+      <a href="#contents"><span class="num">01</span><span>Contents Page</span></a>
+      <a href="#mental-model"><span class="num">02</span><span>Core Mental Model</span></a>
+      <a href="#engine"><span class="num">03</span><span>JavaScript Engine</span></a>
+      <a href="#runtime"><span class="num">04</span><span>Browser Runtime</span></a>
+      <a href="#threads"><span class="num">05</span><span>Processes & Threads</span></a>
+      <a href="#webapis"><span class="num">06</span><span>Web APIs Catalogue</span></a>
+      <a href="#queues"><span class="num">07</span><span>Queues & Event Loop</span></a>
+      <a href="#rendering"><span class="num">08</span><span>Rendering Pipeline</span></a>
+      <a href="#asyncawait"><span class="num">09</span><span>Async/Await Internals</span></a>
+      <a href="#examples"><span class="num">10</span><span>Output Prediction</span></a>
+      <a href="#misconceptions"><span class="num">11</span><span>Misconceptions</span></a>
+      <a href="#browser-node"><span class="num">12</span><span>Browser vs Node</span></a>
+      <a href="#architecture"><span class="num">13</span><span>Final Architecture</span></a>
+      <a href="#quiz"><span class="num">14</span><span>Quiz Mode</span></a>
+      <a href="#flashcards"><span class="num">15</span><span>Flashcards</span></a>
+      <a href="#interview"><span class="num">16</span><span>Interview Answers</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <strong>How to use this</strong>
+      <small>Read chapters 1–8 first. Then practise output prediction, quiz mode, and the 60-second interview answers.</small>
+    </div>
+  </aside>
+  <main id="main">
+    <section class="hero section" id="cover" data-title="Cover Browser Async JavaScript Complete Architecture Senior Interview Book">
+      <div class="hero-content">
+        <span class="eyebrow"><span class="dot"></span> Complete browser runtime map · senior interview level</span>
+        <h1>Browser Async JavaScript <span class="gradient-text">Internals</span></h1>
+        <p class="hero-sub">A premium single-file HTML book that explains the JavaScript engine, browser runtime, Web APIs, event loop queues, rendering pipeline, async/await, browser threads, and interview-level output prediction.</p>
+        <div class="hero-grid">
+          <div class="metric"><strong>16</strong><span>Book sections</span></div>
+          <div class="metric"><strong>30+</strong><span>Interview prompts</span></div>
+          <div class="metric"><strong>12</strong><span>Interactive quiz cards</span></div>
+          <div class="metric"><strong>1</strong><span>Single HTML file</span></div>
+        </div>
+        <div class="hero-actions">
+          <a class="btn primary" href="#contents">Start reading</a>
+          <a class="btn" href="#quiz">Open quiz mode</a>
+          <a class="btn" href="#interview">Senior answers</a>
+          <button class="btn" onclick="window.print()" type="button">Print as PDF</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page section" id="contents" data-title="Contents Page Chapters Book Structure">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter Map</div><h2>Contents Page</h2><p class="lead">This is the learning order for understanding browser async JavaScript at senior frontend, browser runtime, and JS engine interview level.</p></div><div class="chapter-no">01</div></div>
+        <div class="cards two">
+          <div class="card"><span class="icon">🧠</span><h3>Part A — Foundation</h3><ul><li>Core mental model</li><li>JavaScript engine</li><li>Browser runtime</li><li>Processes and threads</li></ul></div>
+          <div class="card"><span class="icon">⚙️</span><h3>Part B — Async System</h3><ul><li>Web APIs catalogue</li><li>Task, microtask, animation and idle queues</li><li>Event loop behaviour</li><li>Rendering pipeline</li></ul></div>
+          <div class="card"><span class="icon">🧪</span><h3>Part C — Practical Mastery</h3><ul><li>Async/await internals</li><li>Output prediction examples</li><li>Common misconceptions</li><li>Browser vs Node.js</li></ul></div>
+          <div class="card"><span class="icon">🎯</span><h3>Part D — Interview Trainer</h3><ul><li>Final architecture diagram</li><li>Interactive quiz mode</li><li>Flashcards</li><li>60-second senior answers</li></ul></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Chapter</th><th>Topic</th><th>What you should be able to explain</th></tr></thead>
+            <tbody>
+              <tr><td><strong>1</strong></td><td>Core mental model</td><td>Why JavaScript is single-threaded while the browser is multi-threaded.</td></tr>
+              <tr><td><strong>2</strong></td><td>JavaScript engine</td><td>Call stack, heap, execution context, lexical environment, garbage collector, promise jobs.</td></tr>
+              <tr><td><strong>3</strong></td><td>Browser runtime</td><td>How Web APIs, queues, event loop and rendering connect to the JS engine.</td></tr>
+              <tr><td><strong>4</strong></td><td>Processes and threads</td><td>Renderer, network, GPU, compositor, raster and worker roles.</td></tr>
+              <tr><td><strong>5</strong></td><td>Web APIs</td><td>Timers, network, DOM events, observers, rendering, storage, workers and device APIs.</td></tr>
+              <tr><td><strong>6</strong></td><td>Queues</td><td>Task queue, microtask queue, animation callbacks and idle callbacks.</td></tr>
+              <tr><td><strong>7</strong></td><td>Rendering pipeline</td><td>Style, layout, paint, composite, and where requestAnimationFrame fits.</td></tr>
+              <tr><td><strong>8</strong></td><td>Interview practice</td><td>Predict output order and explain why without guessing.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="page section" id="mental-model" data-title="Core Mental Model JavaScript Single Thread Browser Multi Thread Async Architecture">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 1</div><h2>Core Mental Model</h2><p class="lead">The cleanest senior-level explanation starts with one distinction: JavaScript execution is single-threaded, but the browser platform around it is multi-threaded and multi-process.</p></div><div class="chapter-no">02</div></div>
+        <div class="callout good"><div class="mark">✅</div><p><strong>One-line model:</strong> JavaScript runs on the call stack; async work is delegated to browser capabilities; completed callbacks are queued; the event loop schedules them back onto the call stack when it is safe.</p></div>
+        <div class="diagram">
+          <div class="diagram-title">High-level browser async flow</div>
+          <div class="flow">
+            <div class="flow-node">Call Stack<small>JS runs here</small></div><div class="arrow">→</div>
+            <div class="flow-node">Web APIs<small>Timers, network, DOM</small></div><div class="arrow">→</div>
+            <div class="flow-node">Queues<small>Task / microtask / animation</small></div><div class="arrow">→</div>
+            <div class="flow-node">Event Loop<small>selects next work</small></div><div class="arrow">→</div>
+            <div class="flow-node">Call Stack<small>JS engine executes</small></div>
+          </div>
+        </div>
+        <div class="split">
+          <div class="card"><h3>What is single-threaded?</h3><p>The JavaScript engine executes normal JavaScript on one main call stack. It cannot run two pieces of synchronous JavaScript at the same exact moment on the same thread.</p></div>
+          <div class="card"><h3>What is multi-threaded?</h3><p>The browser uses other threads and processes for networking, timers, compositing, rasterization, workers, GPU work, and more.</p></div>
+        </div>
+        <div class="interview">
+          <h3>🎤 Senior interview answer</h3>
+          <div class="answer-box"><p>JavaScript itself runs on a single call stack, usually on the renderer main thread in a browser. But the browser is not single-threaded. It has networking, timer, compositor, raster, GPU, and worker infrastructure. When we call an async API like <code>fetch</code>, JavaScript starts the operation and returns. The actual network work happens outside the call stack. When the result is ready, the browser queues a continuation, usually a promise microtask, and the event loop later lets the JS engine execute that continuation on the call stack.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page section" id="engine" data-title="JavaScript Engine Call Stack Heap Execution Context Lexical Environment Garbage Collector Promise Job Handling">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 2</div><h2>JavaScript Engine</h2><p class="lead">The JavaScript engine is responsible for parsing, compiling, optimizing, executing JavaScript, managing memory, and running promise jobs.</p></div><div class="chapter-no">03</div></div>
+        <div class="diagram"><div class="diagram-title">JavaScript engine architecture</div><pre class="tree">JavaScript Engine
+|
+├── Parser / Compiler / Optimizer
+├── Call Stack
+├── Heap
+├── Execution Context
+├── Lexical Environment
+├── Garbage Collector
+└── Promise Job Handling</pre></div>
+        <div class="cards three">
+          <div class="card"><span class="icon">📚</span><h3>Call Stack</h3><p>Tracks active function calls. Synchronous JavaScript executes here. A long-running stack blocks user interaction and rendering.</p></div>
+          <div class="card"><span class="icon">🧺</span><h3>Heap</h3><p>Memory area where objects, arrays, functions and closures are allocated. The garbage collector reclaims unreachable memory.</p></div>
+          <div class="card"><span class="icon">🧾</span><h3>Execution Context</h3><p>Contains variable environment, lexical environment, scope chain, <code>this</code>, and information needed to execute code.</p></div>
+          <div class="card"><span class="icon">🔒</span><h3>Lexical Environment</h3><p>Stores bindings and outer references. This is why closures remember variables from their creation scope.</p></div>
+          <div class="card"><span class="icon">♻️</span><h3>Garbage Collector</h3><p>Finds memory that is no longer reachable and frees it. It is automatic, but leaks can still occur through retained references.</p></div>
+          <div class="card"><span class="icon">⚡</span><h3>Promise Jobs</h3><p>Promise reactions are queued as microtasks/jobs. They run after the current synchronous task completes and before the next task.</p></div>
+        </div>
+        <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Call stack example</span><button class="copy" data-copy>Copy</button></div><pre><code>function c() {
+  console.log("inside c");
+}
+
+function b() {
+  c();
+}
+
+function a() {
+  b();
+}
+
+a();</code></pre></div>
+        <div class="timeline">
+          <div class="step"><div class="step-num">1</div><div class="step-body"><strong><code>a()</code> enters stack</strong><p>The JS engine starts executing function <code>a</code>.</p></div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-body"><strong><code>b()</code> then <code>c()</code> enter stack</strong><p>Each nested call adds a new stack frame.</p></div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Frames pop after completion</strong><p><code>c</code> returns first, then <code>b</code>, then <code>a</code>.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page section" id="runtime" data-title="Browser Runtime Web APIs Event Loop Task Queues Rendering Pipeline Browser Threads">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 3</div><h2>Browser Runtime</h2><p class="lead">The browser runtime is the environment around the JS engine. It provides Web APIs, queues, event loop scheduling, DOM access, rendering, networking, storage and browser-specific capabilities.</p></div><div class="chapter-no">04</div></div>
+        <div class="diagram"><div class="diagram-title">Browser runtime layers</div><pre class="tree">Browser Runtime
+|
+├── JavaScript Engine
+|   ├── Call Stack
+|   ├── Heap
+|   └── Promise Job Handling
+|
+├── Web APIs
+|   ├── Timers
+|   ├── Network
+|   ├── DOM Events
+|   ├── Observers
+|   ├── Workers
+|   └── Storage
+|
+├── Event Loop System
+|   ├── Task Queue
+|   ├── Microtask Queue
+|   ├── Animation Frame Callbacks
+|   └── Idle Callbacks
+|
+└── Rendering Pipeline
+    ├── Style
+    ├── Layout
+    ├── Paint
+    └── Composite</pre></div>
+        <div class="callout warn"><div class="mark">⚠️</div><p><strong>Important:</strong> Web APIs are not part of the JavaScript language itself. They are provided by the browser environment. This is why <code>setTimeout</code>, <code>document</code>, <code>fetch</code>, and <code>requestAnimationFrame</code> exist in browsers but not as core ECMAScript language features.</p></div>
+        <div class="cards two">
+          <div class="card"><h3>Language level</h3><p>ECMAScript defines syntax and core behaviours like functions, promises, modules, classes, arrays, objects, closures, and jobs.</p></div>
+          <div class="card"><h3>Host environment level</h3><p>The browser defines DOM, events, timers, network APIs, rendering, storage, workers, and how these integrate with the event loop.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page section" id="threads" data-title="Browser Multi Threaded Process Renderer Network GPU Compositor Raster Worker Main Thread">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 4</div><h2>Browser Processes & Threads</h2><p class="lead">A modern browser separates work across processes and threads for security, responsiveness and performance. The exact implementation differs by browser, but this model is very useful for interviews.</p></div><div class="chapter-no">05</div></div>
+        <div class="diagram"><div class="diagram-title">Simplified browser process model</div><pre class="tree">Browser Process
+|
+├── Renderer Process
+|   |
+|   ├── Main Thread
+|   |   ├── JavaScript execution
+|   |   ├── DOM operations
+|   |   ├── Style calculation
+|   |   ├── Layout
+|   |   └── Paint preparation
+|   |
+|   ├── Worker Threads
+|   ├── Compositor Thread
+|   └── Raster Threads
+|
+├── Network Process / Thread
+|   ├── HTTP
+|   ├── fetch
+|   ├── XHR
+|   └── WebSocket
+|
+└── GPU Process
+    ├── Compositing
+    ├── GPU commands
+    └── Surface presentation</pre></div>
+        <div class="cards four">
+          <div class="card"><h3>Main Thread</h3><p>Runs JS, handles DOM, style, layout and often paint-related preparation.</p></div>
+          <div class="card"><h3>Network Thread</h3><p>Handles HTTP, fetch, XHR, WebSocket and related network work outside JS execution.</p></div>
+          <div class="card"><h3>Compositor</h3><p>Can handle scrolling and composited animations without always blocking on JavaScript.</p></div>
+          <div class="card"><h3>Workers</h3><p>Run JavaScript off the main thread but cannot directly manipulate the DOM.</p></div>
+        </div>
+        <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">fetch flow</span><button class="copy" data-copy>Copy</button></div><pre><code>console.log("before fetch");
+
+fetch("/users")
+  .then(response => response.json())
+  .then(users => console.log(users));
+
+console.log("after fetch");</code></pre></div>
+        <div class="diagram"><div class="diagram-title">What happens internally</div><div class="flow vertical"><div class="flow-node">JS call stack starts <code>fetch()</code><small>Function does not block</small></div><div class="arrow">→</div><div class="flow-node">Browser network layer performs request<small>Outside normal JS stack</small></div><div class="arrow">→</div><div class="flow-node">Response becomes available<small>Promise is resolved</small></div><div class="arrow">→</div><div class="flow-node">Promise reaction enters microtask queue<small><code>.then</code> callback</small></div><div class="arrow">→</div><div class="flow-node">JS engine executes callback on stack<small>When stack is free</small></div></div></div>
+      </div>
+    </section>
+
+    <section class="page section" id="webapis" data-title="Complete Web APIs Timers Promise Network DOM Events Observer Rendering Storage Workers Communication File Device Scheduling">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 5</div><h2>Complete Web APIs Catalogue</h2><p class="lead">These APIs are the main browser-provided async and platform capabilities a senior frontend engineer should recognize.</p></div><div class="chapter-no">06</div></div>
+        <div class="cards three">
+          <div class="card"><h3>Timer APIs</h3><ul><li><code>setTimeout()</code></li><li><code>setInterval()</code></li><li><code>clearTimeout()</code></li><li><code>clearInterval()</code></li></ul></div>
+          <div class="card"><h3>Promise / Microtask APIs</h3><ul><li><code>Promise</code></li><li><code>queueMicrotask()</code></li><li><code>async / await</code></li><li><code>MutationObserver</code></li></ul></div>
+          <div class="card"><h3>Network APIs</h3><ul><li><code>fetch()</code></li><li><code>XMLHttpRequest</code></li><li><code>WebSocket</code></li><li><code>EventSource</code></li><li><code>Beacon API</code></li></ul></div>
+          <div class="card"><h3>DOM Event APIs</h3><ul><li><code>addEventListener()</code></li><li><code>removeEventListener()</code></li><li><code>dispatchEvent()</code></li><li>click, input, scroll, keydown, load</li></ul></div>
+          <div class="card"><h3>Observer APIs</h3><ul><li><code>MutationObserver</code></li><li><code>IntersectionObserver</code></li><li><code>ResizeObserver</code></li><li><code>PerformanceObserver</code></li></ul></div>
+          <div class="card"><h3>Rendering APIs</h3><ul><li><code>requestAnimationFrame()</code></li><li><code>requestIdleCallback()</code></li><li>CSS animations</li><li>Web Animations API</li></ul></div>
+          <div class="card"><h3>Storage APIs</h3><ul><li><code>localStorage</code></li><li><code>sessionStorage</code></li><li><code>IndexedDB</code></li><li><code>Cache API</code></li><li>Cookies</li></ul></div>
+          <div class="card"><h3>Worker APIs</h3><ul><li><code>Web Worker</code></li><li><code>Shared Worker</code></li><li><code>Service Worker</code></li><li><code>Worklet</code></li></ul></div>
+          <div class="card"><h3>Communication APIs</h3><ul><li><code>BroadcastChannel</code></li><li><code>MessageChannel</code></li><li><code>postMessage</code></li><li>Channel messaging</li></ul></div>
+          <div class="card"><h3>File / Stream APIs</h3><ul><li><code>File</code></li><li><code>FileReader</code></li><li><code>Blob</code></li><li><code>Streams API</code></li></ul></div>
+          <div class="card"><h3>Device APIs</h3><ul><li><code>Geolocation</code></li><li>Camera / microphone</li><li><code>Bluetooth</code>, <code>USB</code></li><li><code>Clipboard</code>, notifications</li></ul></div>
+          <div class="card"><h3>Scheduling APIs</h3><ul><li><code>scheduler.postTask()</code></li><li><code>requestIdleCallback()</code></li><li><code>requestAnimationFrame()</code></li><li><code>queueMicrotask()</code></li></ul></div>
+        </div>
+        <div class="callout"><div class="mark">💡</div><p><strong>Interview tip:</strong> Do not say “all async goes to the callback queue.” That is too basic. Say async completions can enter different scheduling buckets: tasks, microtasks, animation callbacks, idle callbacks, and browser-internal queues.</p></div>
+      </div>
+    </section>
+
+    <section class="page section" id="queues" data-title="All Browser Queues Task Queue Microtask Queue Animation Queue Idle Queue Event Loop">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 6</div><h2>All Browser Queues & Event Loop</h2><p class="lead">For senior interviews, avoid the oversimplified “callback queue + microtask queue” explanation. The browser event loop coordinates multiple sources of work.</p></div><div class="chapter-no">07</div></div>
+        <div class="diagram"><div class="diagram-title">Event loop queues</div><pre class="tree">Event Loop System
+|
+├── Task Queue / Macrotask Queue
+|   ├── setTimeout
+|   ├── setInterval
+|   ├── DOM events
+|   ├── MessageChannel
+|   └── Network callbacks / completion tasks
+|
+├── Microtask Queue
+|   ├── Promise.then / catch / finally
+|   ├── await continuation
+|   ├── queueMicrotask
+|   └── MutationObserver
+|
+├── Animation Frame Callback Queue
+|   └── requestAnimationFrame
+|
+└── Idle Callback Queue
+    └── requestIdleCallback</pre></div>
+        <div class="table-wrap"><table><thead><tr><th>Queue</th><th>Examples</th><th>When it runs</th><th>Interview note</th></tr></thead><tbody><tr><td><strong>Task queue</strong></td><td><code>setTimeout</code>, DOM events, message events</td><td>One task is selected per event loop turn.</td><td>After a task, microtasks are drained.</td></tr><tr><td><strong>Microtask queue</strong></td><td><code>Promise.then</code>, <code>await</code>, <code>queueMicrotask</code></td><td>After current script/task, before rendering opportunity and before next task.</td><td>Can starve rendering if endlessly scheduled.</td></tr><tr><td><strong>Animation callbacks</strong></td><td><code>requestAnimationFrame</code></td><td>Before paint for the next frame.</td><td>Use for visual updates that should sync with refresh rate.</td></tr><tr><td><strong>Idle callbacks</strong></td><td><code>requestIdleCallback</code></td><td>When browser has spare time.</td><td>Not for critical work.</td></tr></tbody></table></div>
+        <div class="interview"><h3>🎤 Senior phrasing</h3><div class="answer-box"><p>The event loop does not directly “execute” JavaScript. It coordinates when work can enter the call stack. The JS engine executes the selected callback. After a task completes, the browser drains the microtask queue. Then, if it is time to render, animation callbacks and the rendering pipeline can run before the event loop moves to another task.</p></div></div>
+        <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Queue priority example</span><button class="copy" data-copy>Copy</button></div><pre><code>setTimeout(() => console.log("task"), 0);
+
+Promise.resolve().then(() => console.log("microtask"));
+
+queueMicrotask(() => console.log("queued microtask"));
+
+console.log("sync");</code></pre></div>
+        <div class="callout good"><div class="mark">➡️</div><p><strong>Output:</strong> <code>sync</code>, then <code>microtask</code>, then <code>queued microtask</code>, then <code>task</code>.</p></div>
+      </div>
+    </section>
+
+    <section class="page section" id="rendering" data-title="Rendering Pipeline Event Loop Style Layout Paint Composite requestAnimationFrame">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 7</div><h2>Rendering Pipeline</h2><p class="lead">The event loop is connected to rendering. This is the part many intermediate explanations miss.</p></div><div class="chapter-no">08</div></div>
+        <div class="diagram"><div class="diagram-title">One event loop turn with rendering</div><div class="flow vertical"><div class="flow-node">1. Run oldest task<small>Example: timer callback or click event</small></div><div class="arrow">→</div><div class="flow-node">2. Drain microtask queue<small>Promises, await continuations, queueMicrotask</small></div><div class="arrow">→</div><div class="flow-node">3. Run requestAnimationFrame callbacks<small>Before next paint</small></div><div class="arrow">→</div><div class="flow-node">4. Style calculation<small>Compute final CSS</small></div><div class="arrow">→</div><div class="flow-node">5. Layout<small>Calculate geometry</small></div><div class="arrow">→</div><div class="flow-node">6. Paint<small>Draw pixels/layers</small></div><div class="arrow">→</div><div class="flow-node">7. Composite<small>Combine layers and present</small></div><div class="arrow">→</div><div class="flow-node">8. Next task<small>Loop continues</small></div></div></div>
+        <div class="cards three"><div class="card"><h3>Style</h3><p>Browser calculates which CSS rules apply and computes final values.</p></div><div class="card"><h3>Layout</h3><p>Browser calculates element sizes and positions. Layout can be expensive if repeatedly forced.</p></div><div class="card"><h3>Paint & Composite</h3><p>Browser paints visual content and composites layers to the screen, often assisted by compositor/GPU infrastructure.</p></div></div>
+        <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Rendering order example</span><button class="copy" data-copy>Copy</button></div><pre><code>setTimeout(() => {
+  console.log("timer");
+}, 0);
+
+Promise.resolve().then(() => {
+  console.log("promise");
+});
+
+requestAnimationFrame(() => {
+  console.log("animation");
+});
+
+console.log("sync");</code></pre></div>
+        <div class="callout"><div class="mark">🧭</div><p><strong>Common simplified output:</strong> <code>sync → promise → animation → timer</code>, assuming the browser has a rendering opportunity before the timer task. In real browsers, timing details can vary, but the interview concept is: synchronous code first, microtasks before the next task, and <code>requestAnimationFrame</code> before paint.</p></div>
+        <details><summary>Why microtasks can block rendering</summary><div class="details-body"><p>The browser drains microtasks until the microtask queue is empty. If a microtask keeps scheduling another microtask, rendering may be delayed. That means an infinite promise chain can freeze the UI even though each individual callback seems small.</p></div></details>
+      </div>
+    </section>
+
+    <section class="page section" id="asyncawait" data-title="Async Await Internals Promise Microtask Function Suspended Await Continuation">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 8</div><h2>Async/Await Internals</h2><p class="lead"><code>async/await</code> is syntax over promises. It makes asynchronous code look synchronous, but it does not block the main thread.</p></div><div class="chapter-no">09</div></div>
+        <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Async function example</span><button class="copy" data-copy>Copy</button></div><pre><code>async function test() {
+  console.log(1);
+
+  await fetch("/api");
+
+  console.log(2);
+}
+
+test();
+console.log(3);</code></pre></div>
+        <div class="timeline">
+          <div class="step"><div class="step-num">1</div><div class="step-body"><strong><code>test()</code> is called</strong><p>The function starts synchronously and logs <code>1</code>.</p></div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-body"><strong><code>await fetch()</code> starts async work</strong><p>The fetch request is initiated through browser networking. The function suspends and returns a promise to the caller.</p></div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Outer code continues</strong><p><code>console.log(3)</code> runs because <code>await</code> does not block the thread.</p></div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Continuation becomes a microtask</strong><p>When the awaited promise settles, the rest of the async function is queued as a promise job/microtask.</p></div></div>
+          <div class="step"><div class="step-num">5</div><div class="step-body"><strong><code>console.log(2)</code> runs later</strong><p>The JS engine resumes the function on the call stack when the microtask is processed.</p></div></div>
+        </div>
+        <div class="callout good"><div class="mark">✅</div><p><strong>Output idea:</strong> <code>1</code>, <code>3</code>, then later <code>2</code>.</p></div>
+        <div class="interview"><h3>🎤 Senior answer</h3><div class="answer-box"><p>When an async function hits <code>await</code>, it pauses that function, not the JavaScript thread. The async function returns a promise. Once the awaited value settles, the continuation after <code>await</code> is scheduled as a microtask, so it runs after the current synchronous work and before the next task.</p></div></div>
+      </div>
+    </section>
+
+    <section class="page section" id="examples" data-title="Output Prediction JavaScript Event Loop Examples Promises Timers Async Await requestAnimationFrame">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 9</div><h2>Output Prediction Practice</h2><p class="lead">Interviewers often test async knowledge by asking for output order. Use the stack → microtask → render opportunity → task model.</p></div><div class="chapter-no">10</div></div>
+        <div class="split">
+          <div>
+            <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Example 1</span><button class="copy" data-copy>Copy</button></div><pre><code>console.log("A");
+
+setTimeout(() => console.log("B"), 0);
+
+Promise.resolve().then(() => console.log("C"));
+
+console.log("D");</code></pre></div>
+          </div>
+          <div class="card"><h3>Answer</h3><p><code>A → D → C → B</code></p><p>Synchronous logs run first. Promise callback is a microtask. Timer callback is a task.</p></div>
+        </div>
+        <div class="split">
+          <div>
+            <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Example 2</span><button class="copy" data-copy>Copy</button></div><pre><code>async function f() {
+  console.log("1");
+  await Promise.resolve();
+  console.log("2");
+}
+
+console.log("3");
+f();
+console.log("4");</code></pre></div>
+          </div>
+          <div class="card"><h3>Answer</h3><p><code>3 → 1 → 4 → 2</code></p><p>The async function starts synchronously. The continuation after <code>await</code> runs as a microtask.</p></div>
+        </div>
+        <div class="split">
+          <div>
+            <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Example 3</span><button class="copy" data-copy>Copy</button></div><pre><code>setTimeout(() => console.log("timer 1"), 0);
+
+Promise.resolve().then(() => {
+  console.log("promise 1");
+  Promise.resolve().then(() => console.log("promise 2"));
+});
+
+setTimeout(() => console.log("timer 2"), 0);
+
+console.log("sync");</code></pre></div>
+          </div>
+          <div class="card"><h3>Answer</h3><p><code>sync → promise 1 → promise 2 → timer 1 → timer 2</code></p><p>All microtasks drain before timers. The second promise is added while draining microtasks, so it also runs before timers.</p></div>
+        </div>
+        <div class="split">
+          <div>
+            <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Example 4</span><button class="copy" data-copy>Copy</button></div><pre><code>button.addEventListener("click", () => {
+  console.log("click");
+
+  Promise.resolve().then(() => console.log("promise"));
+
+  setTimeout(() => console.log("timer"), 0);
+});</code></pre></div>
+          </div>
+          <div class="card"><h3>Answer after click</h3><p><code>click → promise → timer</code></p><p>The click handler is a task. After the task completes, microtasks run, then the timer task can run later.</p></div>
+        </div>
+        <div class="callout warn"><div class="mark">🧠</div><p><strong>Method:</strong> First mark synchronous code. Then mark promise/await microtasks. Then mark timers/events as tasks. Then consider rendering APIs such as <code>requestAnimationFrame</code>.</p></div>
+      </div>
+    </section>
+
+    <section class="page section" id="misconceptions" data-title="Common Misconceptions Event Loop Does Not Execute Callback Async Await Blocks JavaScript Single Threaded Browser Single Threaded">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 10</div><h2>Common Misconceptions</h2><p class="lead">These are the mistakes that separate intermediate explanations from senior-level browser runtime explanations.</p></div><div class="chapter-no">11</div></div>
+        <div class="cards two">
+          <div class="card"><h3>❌ “The event loop executes callbacks.”</h3><p><strong>Correct:</strong> The event loop schedules work. The JS engine executes the callback on the call stack.</p></div>
+          <div class="card"><h3>❌ “JavaScript async means multi-threaded JS.”</h3><p><strong>Correct:</strong> Async means non-blocking scheduling. Normal JS still runs on one call stack unless you explicitly use workers.</p></div>
+          <div class="card"><h3>❌ “await blocks the thread.”</h3><p><strong>Correct:</strong> <code>await</code> suspends the async function and schedules the continuation later as a microtask.</p></div>
+          <div class="card"><h3>❌ “Promises go to the task queue.”</h3><p><strong>Correct:</strong> Promise reactions go to the microtask queue / promise job queue.</p></div>
+          <div class="card"><h3>❌ “setTimeout(fn, 0) runs immediately.”</h3><p><strong>Correct:</strong> It schedules a task. It runs only after current synchronous work, microtasks, and scheduling constraints.</p></div>
+          <div class="card"><h3>❌ “The browser is single-threaded.”</h3><p><strong>Correct:</strong> JavaScript execution is single-threaded on the main stack, but the browser uses many threads/processes.</p></div>
+        </div>
+        <details><summary>What to say instead of “callback queue”</summary><div class="details-body"><p>Say: “The callback may be scheduled into a task queue, microtask queue, animation frame callbacks, or idle callback queue depending on the API and browser scheduling rules.”</p></div></details>
+      </div>
+    </section>
+
+    <section class="page section" id="browser-node" data-title="Browser vs Node Event Loop Web APIs DOM Rendering libuv Thread Pool nextTick">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 11</div><h2>Browser vs Node.js</h2><p class="lead">Both use JavaScript, but their host environments and event loop details differ. Do not explain Node.js using browser rendering concepts.</p></div><div class="chapter-no">12</div></div>
+        <div class="matrix">
+          <div class="compare"><h3>Browser</h3><ul><li>Web APIs</li><li>DOM and CSSOM</li><li>Rendering pipeline</li><li>Task and microtask queues</li><li><code>requestAnimationFrame</code></li><li>Workers and service workers</li></ul></div>
+          <div class="compare"><h3>Node.js</h3><ul><li>libuv event loop</li><li>Thread pool for some async work</li><li>Event loop phases</li><li><code>process.nextTick</code> queue</li><li>Timers, poll, check phases</li><li>No DOM rendering pipeline</li></ul></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Area</th><th>Browser</th><th>Node.js</th></tr></thead><tbody><tr><td><strong>Host APIs</strong></td><td>DOM, fetch, timers, storage, rendering</td><td>File system, network, process, streams, timers</td></tr><tr><td><strong>Rendering</strong></td><td>Yes: style, layout, paint, composite</td><td>No browser rendering pipeline</td></tr><tr><td><strong>Event loop model</strong></td><td>HTML event loop + browser scheduling</td><td>libuv phases</td></tr><tr><td><strong>Special queues</strong></td><td>Microtasks, tasks, animation, idle</td><td>nextTick, promise microtasks, timers, poll, check</td></tr></tbody></table></div>
+        <div class="callout"><div class="mark">🎯</div><p><strong>Interview line:</strong> Browser async JavaScript must include DOM and rendering. Node.js async JavaScript must include libuv phases and the thread pool.</p></div>
+      </div>
+    </section>
+
+    <section class="page section" id="architecture" data-title="Final Senior Browser Async JavaScript Complete Architecture Diagram">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 12</div><h2>Final Senior Browser Async JS Architecture</h2><p class="lead">This is the complete map you should carry into senior frontend interviews.</p></div><div class="chapter-no">13</div></div>
+        <div class="diagram"><div class="diagram-title">Complete architecture</div><pre class="tree">Browser
+|
+├── JavaScript Engine
+|   |
+|   ├── Call Stack
+|   ├── Heap
+|   ├── Execution Context
+|   ├── Lexical Environment
+|   ├── Garbage Collector
+|   └── Promise Job Handling
+|
+├── Browser Runtime
+|   |
+|   ├── Web APIs
+|   |   ├── Timer APIs
+|   |   ├── Network APIs
+|   |   ├── DOM Event APIs
+|   |   ├── Observer APIs
+|   |   ├── Rendering APIs
+|   |   ├── Storage APIs
+|   |   ├── Worker APIs
+|   |   ├── Communication APIs
+|   |   ├── File / Stream APIs
+|   |   └── Device APIs
+|   |
+|   ├── Event Loop System
+|   |   ├── Task Queue
+|   |   ├── Microtask Queue
+|   |   ├── Animation Frame Callbacks
+|   |   └── Idle Callbacks
+|   |
+|   ├── Rendering Pipeline
+|   |   ├── Style
+|   |   ├── Layout
+|   |   ├── Paint
+|   |   └── Composite
+|   |
+|   └── Browser Threads / Processes
+|       ├── Renderer Main Thread
+|       ├── Network Thread / Process
+|       ├── Worker Threads
+|       ├── Compositor Thread
+|       ├── Raster Threads
+|       └── GPU Process
+|
+└── User-visible UI
+    └── Updated after render/composite</pre></div>
+        <div class="interview"><h3>🎤 Full senior answer</h3><div class="answer-box"><p>In the browser, JavaScript normally executes on a single call stack inside the JavaScript engine, usually on the renderer main thread. The engine also manages heap memory, execution contexts, lexical environments, garbage collection and promise jobs.</p><p>The browser around it is multi-threaded and multi-process. It provides Web APIs such as timers, fetch, DOM events, observers, workers and rendering APIs. When JavaScript starts async work, the work is delegated to browser infrastructure such as networking, timers or workers. When the async operation completes, the browser schedules a callback or continuation into the correct queue.</p><p>The event loop coordinates this scheduling. It picks tasks when the stack is free, drains microtasks after each task, allows animation frame callbacks before paint, then the browser can run style, layout, paint and composite. The event loop schedules work onto the call stack; the JavaScript engine executes it.</p></div></div>
+      </div>
+    </section>
+
+    <section class="page section" id="quiz" data-title="Quiz Mode Interactive Interview Questions JavaScript Async Event Loop">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Interactive Trainer</div><h2>Quiz Mode</h2><p class="lead">Click an option to check your answer. The explanation appears instantly.</p></div><div class="chapter-no">14</div></div>
+        <div class="quiz-panel">
+          <div class="quiz-meta"><span class="badge" id="scoreBadge">Score: 0 / 12</span><span class="badge">Senior frontend prep</span><span class="badge">Browser runtime</span></div>
+          <div class="q-card" data-answer="b"><div class="q-title">1. Which statement is most accurate?</div><div class="options"><div class="option" data-opt="a">The browser is single-threaded.</div><div class="option" data-opt="b">JavaScript execution is usually single-threaded, but the browser is multi-threaded.</div><div class="option" data-opt="c">Promises run on a separate JavaScript thread.</div></div><div class="explanation">Correct answer: B. Normal JS execution uses one call stack, but the browser has network, compositor, worker, raster and other threads/processes.</div></div>
+          <div class="q-card" data-answer="c"><div class="q-title">2. Promise <code>.then</code> callbacks usually enter which queue?</div><div class="options"><div class="option" data-opt="a">Task queue</div><div class="option" data-opt="b">Animation queue</div><div class="option" data-opt="c">Microtask queue</div></div><div class="explanation">Correct answer: C. Promise reactions are microtasks / promise jobs.</div></div>
+          <div class="q-card" data-answer="a"><div class="q-title">3. What does <code>await</code> block?</div><div class="options"><div class="option" data-opt="a">The current async function continuation</div><div class="option" data-opt="b">The whole JavaScript thread</div><div class="option" data-opt="c">The browser network thread</div></div><div class="explanation">Correct answer: A. <code>await</code> suspends the async function and resumes it later via microtask scheduling.</div></div>
+          <div class="q-card" data-answer="b"><div class="q-title">4. Who actually executes a callback?</div><div class="options"><div class="option" data-opt="a">The event loop</div><div class="option" data-opt="b">The JavaScript engine on the call stack</div><div class="option" data-opt="c">The network thread</div></div><div class="explanation">Correct answer: B. The event loop coordinates scheduling; the JS engine executes the callback.</div></div>
+          <div class="q-card" data-answer="c"><div class="q-title">5. <code>requestAnimationFrame</code> is best for:</div><div class="options"><div class="option" data-opt="a">Running critical network requests</div><div class="option" data-opt="b">Replacing promises</div><div class="option" data-opt="c">Scheduling visual updates before paint</div></div><div class="explanation">Correct answer: C. rAF runs before the browser paints the next frame.</div></div>
+          <div class="q-card" data-answer="a"><div class="q-title">6. Output: <code>console.log('A'); Promise.resolve().then(()=>console.log('B')); console.log('C');</code></div><div class="options"><div class="option" data-opt="a">A C B</div><div class="option" data-opt="b">A B C</div><div class="option" data-opt="c">B A C</div></div><div class="explanation">Correct answer: A. Synchronous logs run first; promise callback runs as a microtask.</div></div>
+          <div class="q-card" data-answer="b"><div class="q-title">7. What runs after a task completes and before the next task?</div><div class="options"><div class="option" data-opt="a">Only timers</div><div class="option" data-opt="b">Microtasks are drained</div><div class="option" data-opt="c">The browser restarts the JS engine</div></div><div class="explanation">Correct answer: B. The browser drains the microtask queue after the current task.</div></div>
+          <div class="q-card" data-answer="a"><div class="q-title">8. Which one is not a core ECMAScript feature?</div><div class="options"><div class="option" data-opt="a"><code>document.querySelector</code></div><div class="option" data-opt="b"><code>Promise</code></div><div class="option" data-opt="c"><code>Array.prototype.map</code></div></div><div class="explanation">Correct answer: A. <code>document</code> is a browser DOM API, not core ECMAScript.</div></div>
+          <div class="q-card" data-answer="c"><div class="q-title">9. Which API is commonly associated with idle time work?</div><div class="options"><div class="option" data-opt="a"><code>fetch</code></div><div class="option" data-opt="b"><code>setInterval</code></div><div class="option" data-opt="c"><code>requestIdleCallback</code></div></div><div class="explanation">Correct answer: C. <code>requestIdleCallback</code> is for lower-priority work when the browser has spare time.</div></div>
+          <div class="q-card" data-answer="b"><div class="q-title">10. Which is most accurate about Web Workers?</div><div class="options"><div class="option" data-opt="a">They directly update the DOM.</div><div class="option" data-opt="b">They run JS off the main thread and communicate by messages.</div><div class="option" data-opt="c">They replace the event loop.</div></div><div class="explanation">Correct answer: B. Workers run off the main thread and communicate via message passing; they do not directly mutate the DOM.</div></div>
+          <div class="q-card" data-answer="a"><div class="q-title">11. Browser rendering includes:</div><div class="options"><div class="option" data-opt="a">Style, layout, paint, composite</div><div class="option" data-opt="b">Only JavaScript parsing</div><div class="option" data-opt="c">Only HTTP processing</div></div><div class="explanation">Correct answer: A. Rendering means computing styles, laying out geometry, painting and compositing.</div></div>
+          <div class="q-card" data-answer="c"><div class="q-title">12. Node.js async internals are mainly associated with:</div><div class="options"><div class="option" data-opt="a">The browser rendering pipeline</div><div class="option" data-opt="b">CSS layout</div><div class="option" data-opt="c">libuv phases and thread pool</div></div><div class="explanation">Correct answer: C. Node's host environment uses libuv, not the browser's rendering pipeline.</div></div>
+          <button class="btn primary" id="resetQuiz" type="button">Reset quiz</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page section" id="flashcards" data-title="Flashcards Interview Revision Event Loop Async JavaScript">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Revision</div><h2>Flashcards</h2><p class="lead">Click each card to flip it. Use these for fast revision before interviews.</p></div><div class="chapter-no">15</div></div>
+        <div class="flashcards">
+          <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>What is the call stack?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small>The structure where the JS engine tracks active function calls and executes synchronous JavaScript.</small></div></div></div>
+          <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>What is a microtask?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small>High-priority queued work such as promise reactions, await continuations and queueMicrotask callbacks.</small></div></div></div>
+          <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>Does await block the thread?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small>No. It suspends the async function and resumes the continuation later as a microtask.</small></div></div></div>
+          <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>What does rAF do?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small><code>requestAnimationFrame</code> schedules a callback before the next paint, making it suitable for visual updates.</small></div></div></div>
+          <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>Does the event loop execute callbacks?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small>No. The event loop schedules work; the JS engine executes callbacks on the call stack.</small></div></div></div>
+          <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>Browser vs Node?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small>Browser has DOM and rendering pipeline. Node has libuv phases, thread pool and process APIs.</small></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page section" id="interview" data-title="Interview Answers Senior Frontend Browser Runtime JavaScript Async">
+      <div class="page-inner">
+        <div class="page-head"><div><div class="chapter-kicker">Final Preparation</div><h2>Senior Interview Answers</h2><p class="lead">Use these as polished spoken answers. They are intentionally concise but complete.</p></div><div class="chapter-no">16</div></div>
+        <details open><summary>Explain browser async JavaScript in 60 seconds</summary><div class="details-body"><p>JavaScript runs on a single call stack inside the JavaScript engine. The browser around it is multi-threaded and provides Web APIs like timers, fetch, DOM events, workers and rendering APIs. When JS starts async work, the work is delegated to the browser. When it completes, the browser schedules a callback or continuation into a queue. Promise callbacks and await continuations go to the microtask queue. Timers and events usually enter task queues. The event loop coordinates when queued work can go back to the call stack. After each task, microtasks are drained. Then the browser may run animation frame callbacks and rendering steps like style, layout, paint and composite.</p></div></details>
+        <details><summary>Explain fetch internals</summary><div class="details-body"><p><code>fetch</code> starts a network request through the browser's networking layer and returns a promise immediately. JavaScript does not wait for the HTTP request on the call stack. When the network response is ready, the promise settles, and the related <code>.then</code> or <code>await</code> continuation is scheduled as a microtask. The JS engine later runs that continuation when the stack is empty and after the current task finishes.</p></div></details>
+        <details><summary>Explain microtask vs task</summary><div class="details-body"><p>A task is a larger unit of scheduled work such as a timer callback, user event, or message event. A microtask is higher-priority follow-up work such as a promise reaction, <code>await</code> continuation or <code>queueMicrotask</code>. After the current script or task finishes, the browser drains all microtasks before moving to the next task.</p></div></details>
+        <details><summary>Explain requestAnimationFrame</summary><div class="details-body"><p><code>requestAnimationFrame</code> schedules a callback before the browser's next paint. It is ideal for visual updates because the browser can align the callback with the display refresh cycle. It is not the same as a promise microtask or timer task; it belongs to the rendering side of the browser's scheduling model.</p></div></details>
+        <details><summary>Explain why the UI freezes</summary><div class="details-body"><p>The UI freezes when the main thread is blocked. Long synchronous JavaScript, expensive layout, heavy paint work, or an endless microtask chain can prevent the browser from handling input and rendering frames. The fix is to break work into chunks, avoid forced synchronous layout, use workers for CPU-heavy work, and schedule visual changes with rendering-aware APIs.</p></div></details>
+        <details><summary>Explain browser vs Node event loop</summary><div class="details-body"><p>The browser event loop integrates JavaScript execution with DOM events and rendering. It has tasks, microtasks, animation frame callbacks, idle callbacks and the rendering pipeline. Node.js does not have DOM rendering; it uses libuv with phases such as timers, poll and check, plus special queues like <code>process.nextTick</code> and promise microtasks.</p></div></details>
+        <div class="callout good"><div class="mark">🏁</div><p><strong>Final target:</strong> In an interview, do not merely say “callback queue and event loop.” Talk about the JavaScript engine, browser APIs, multi-threaded browser runtime, task/microtask scheduling, and rendering pipeline.</p></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <strong>Browser Async JavaScript Internals — V2</strong><br />
+      Single-file HTML · inline CSS · inline JavaScript · responsive premium UI · quiz and interview trainer.
+    </footer>
+  </main>
+</div>
+<div class="floating-tools" aria-label="Floating tools">
+  <button class="fab" id="topBtn" title="Back to top" type="button">↑</button>
+  <button class="fab" id="printBtn" title="Print" type="button">⎙</button>
+</div>
+<script>
+  (function(){
+    const body = document.body;
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menuBtn');
+    const themeBtn = document.getElementById('themeBtn');
+    const expandBtn = document.getElementById('expandBtn');
+    const progress = document.getElementById('progress');
+    const tocLinks = Array.from(document.querySelectorAll('.toc a'));
+    const sections = Array.from(document.querySelectorAll('.section'));
+    const search = document.getElementById('search');
+    const scoreBadge = document.getElementById('scoreBadge');
+    const storageKey = 'browserAsyncBookTheme';
+
+    function setTheme(mode){
+      body.classList.toggle('light', mode === 'light');
+      themeBtn.textContent = mode === 'light' ? '☀️ Theme' : '🌙 Theme';
+      localStorage.setItem(storageKey, mode);
+    }
+    setTheme(localStorage.getItem(storageKey) || 'dark');
+    themeBtn.addEventListener('click', () => setTheme(body.classList.contains('light') ? 'dark' : 'light'));
+
+    menuBtn && menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+    tocLinks.forEach(a => a.addEventListener('click', () => sidebar.classList.remove('open')));
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') sidebar.classList.remove('open'); });
+
+    function onScroll(){
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = Math.max(0, Math.min(100, (scrollTop / docHeight) * 100)) + '%';
+      let current = sections[0]?.id;
+      for(const section of sections){
+        const rect = section.getBoundingClientRect();
+        if(rect.top <= 120) current = section.id;
+      }
+      tocLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + current));
+    }
+    document.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+
+    document.querySelectorAll('[data-copy]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const code = btn.closest('.codebox').querySelector('code').innerText;
+        try{
+          await navigator.clipboard.writeText(code);
+          const old = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(() => btn.textContent = old, 1100);
+        }catch(err){
+          btn.textContent = 'Select text';
+          setTimeout(() => btn.textContent = 'Copy', 1100);
+        }
+      });
+    });
+
+    expandBtn && expandBtn.addEventListener('click', () => {
+      const details = Array.from(document.querySelectorAll('details'));
+      const shouldOpen = details.some(d => !d.open);
+      details.forEach(d => d.open = shouldOpen);
+      expandBtn.textContent = shouldOpen ? 'Collapse all' : 'Expand all';
+    });
+
+    function normalize(s){ return s.toLowerCase().replace(/\s+/g,' ').trim(); }
+    search.addEventListener('input', () => {
+      const q = normalize(search.value);
+      sections.forEach(sec => {
+        const title = normalize(sec.dataset.title || sec.textContent);
+        const match = !q || title.includes(q);
+        sec.classList.toggle('hidden-by-search', !match);
+      });
+      tocLinks.forEach(link => {
+        const target = document.querySelector(link.getAttribute('href'));
+        link.style.display = target && target.classList.contains('hidden-by-search') ? 'none' : 'flex';
+      });
+    });
+
+    let answered = new Map();
+    function updateScore(){
+      const total = document.querySelectorAll('.q-card').length;
+      let score = 0;
+      answered.forEach(v => { if(v) score++; });
+      scoreBadge.textContent = 'Score: ' + score + ' / ' + total;
+    }
+    document.querySelectorAll('.q-card').forEach((card, index) => {
+      card.querySelectorAll('.option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          if(card.classList.contains('answered')) return;
+          const answer = card.dataset.answer;
+          const chosen = opt.dataset.opt;
+          card.classList.add('answered');
+          card.querySelectorAll('.option').forEach(o => {
+            if(o.dataset.opt === answer) o.classList.add('correct');
+          });
+          if(chosen !== answer) opt.classList.add('wrong');
+          answered.set(index, chosen === answer);
+          updateScore();
+        });
+      });
+    });
+    document.getElementById('resetQuiz').addEventListener('click', () => {
+      answered = new Map();
+      document.querySelectorAll('.q-card').forEach(card => {
+        card.classList.remove('answered');
+        card.querySelectorAll('.option').forEach(o => o.classList.remove('correct','wrong'));
+      });
+      updateScore();
+    });
+    updateScore();
+
+    document.querySelectorAll('.flashcard').forEach(card => card.addEventListener('click', () => card.classList.toggle('flipped')));
+    document.getElementById('topBtn').addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+    // Small live demo for learners who open DevTools.
+    window.browserAsyncBookDemo = function(){
+      console.log('sync A');
+      setTimeout(() => console.log('task B'), 0);
+      Promise.resolve().then(() => console.log('microtask C'));
+      queueMicrotask(() => console.log('microtask D'));
+      console.log('sync E');
+      return 'Expected: sync A, sync E, microtask C, microtask D, task B';
+    };
+  })();
+</script>
+</body>
+</html>
