@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+  <meta name='description' content='A complete senior-level Node.js internals architecture book with libuv, V8, event loop, thread pool, streams, workers, quiz, flashcards and Ask LLM buttons.' />
+  <title>Node.js Internals Architecture — Senior Runtime Masterbook</title>
+  <style>
+:root{--bg:#070b16;--bg2:#0b1326;--paper:#111a31;--paper2:#151f3a;--glass:rgba(255,255,255,.075);--glass2:rgba(255,255,255,.115);--line:rgba(255,255,255,.13);--text:#edf5ff;--muted:#a9b7d3;--faint:#7f8ba7;--brand:#22c55e;--brand2:#06b6d4;--brand3:#8b5cf6;--green:#34d399;--yellow:#fbbf24;--red:#fb7185;--blue:#60a5fa;--code:#06101f;--codeLine:rgba(255,255,255,.08);--shadow:0 28px 90px rgba(0,0,0,.42);--shadow2:0 20px 60px rgba(8,12,28,.36);--radius:26px;--radius2:18px;--max:1240px;--sidebar:315px;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;--sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+body.light{--bg:#f5f7ff;--bg2:#ffffff;--paper:#ffffff;--paper2:#f8faff;--glass:rgba(9,17,33,.055);--glass2:rgba(9,17,33,.09);--line:rgba(15,23,42,.12);--text:#111827;--muted:#475569;--faint:#64748b;--code:#0b1020;--shadow:0 28px 90px rgba(30,41,59,.14);--shadow2:0 20px 50px rgba(30,41,59,.12)}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;min-height:100vh;font-family:var(--sans);color:var(--text);background:radial-gradient(circle at 10% -5%, rgba(34,197,94,.28), transparent 32%),radial-gradient(circle at 95% 2%, rgba(6,182,212,.25), transparent 30%),radial-gradient(circle at 50% 110%, rgba(139,92,246,.14), transparent 35%),linear-gradient(180deg,var(--bg),#040711 76%);overflow-x:hidden}body.light{background:radial-gradient(circle at 8% -8%, rgba(34,197,94,.16), transparent 31%),radial-gradient(circle at 95% 2%, rgba(6,182,212,.16), transparent 28%),radial-gradient(circle at 50% 110%, rgba(139,92,246,.12), transparent 34%),linear-gradient(180deg,#f5f7ff,#eef3ff 80%)}
+a{color:inherit;text-decoration:none}p{line-height:1.78;color:var(--muted);font-size:1.02rem;margin:0 0 1rem}h1,h2,h3,h4{margin:0;color:var(--text);letter-spacing:-.04em}h1{font-size:clamp(2.45rem,5.8vw,6.2rem);line-height:.94;max-width:990px}h2{font-size:clamp(2rem,3.7vw,3.8rem);line-height:1.02;margin-bottom:1rem}h3{font-size:clamp(1.25rem,1.8vw,1.85rem);line-height:1.14;margin-bottom:.72rem}h4{font-size:1.04rem;letter-spacing:-.02em;margin-bottom:.45rem}code,kbd{font-family:var(--mono)}.skip{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}.skip:focus{left:18px;top:18px;width:auto;height:auto;z-index:9999;padding:.8rem 1rem;background:var(--paper);border:1px solid var(--line);border-radius:12px}.grain:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.20;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E")}
+.topbar{position:sticky;top:0;z-index:1000;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-bottom:1px solid var(--line);background:linear-gradient(90deg,rgba(7,11,22,.78),rgba(11,19,38,.58))}body.light .topbar{background:rgba(255,255,255,.75)}.topbar-inner{max-width:var(--max);margin:0 auto;padding:.82rem 1.25rem;display:flex;align-items:center;gap:1rem;justify-content:space-between}.brand{display:flex;align-items:center;gap:.78rem;font-weight:900;letter-spacing:-.04em;min-width:0}.logo{width:42px;height:42px;border-radius:15px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;box-shadow:0 12px 34px rgba(34,197,94,.28);flex:0 0 auto}.logo svg{width:25px;height:25px;color:#fff}.brand-title{display:flex;flex-direction:column;line-height:1.05;min-width:0}.brand-title span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:410px}.brand-title small{font-weight:700;color:var(--muted);letter-spacing:0;font-size:.72rem;margin-top:.18rem}.top-actions{display:flex;align-items:center;gap:.62rem}.btn{border:1px solid var(--line);background:var(--glass);color:var(--text);border-radius:999px;padding:.75rem 1rem;font-weight:850;cursor:pointer;display:inline-flex;align-items:center;gap:.45rem;transition:.22s ease;font-size:.9rem;white-space:nowrap}.btn:hover{transform:translateY(-2px);background:var(--glass2);border-color:rgba(255,255,255,.25)}body.light .btn:hover{border-color:rgba(15,23,42,.22)}.btn.primary{border:0;background:linear-gradient(135deg,var(--brand),var(--brand2));color:white;box-shadow:0 18px 44px rgba(6,182,212,.16)}.btn.small{padding:.55rem .76rem;font-size:.82rem}.hamb{display:none}.progress{height:3px;background:linear-gradient(90deg,var(--brand),var(--brand2),var(--brand3));transform-origin:left;width:0%;transition:width .05s linear}
+.layout{max-width:var(--max);margin:0 auto;display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);gap:1.3rem;padding:1.25rem}.sidebar{position:sticky;top:83px;height:calc(100vh - 100px);overflow:auto;padding:.8rem;border:1px solid var(--line);border-radius:24px;background:rgba(255,255,255,.055);box-shadow:var(--shadow2)}body.light .sidebar{background:rgba(255,255,255,.72)}.sidebar::-webkit-scrollbar{width:7px}.sidebar::-webkit-scrollbar-thumb{background:var(--glass2);border-radius:99px}.search-wrap{position:relative;margin:.2rem 0 .9rem}.search-wrap input{width:100%;border:1px solid var(--line);border-radius:18px;background:rgba(0,0,0,.16);color:var(--text);padding:.9rem .95rem .9rem 2.45rem;outline:none;font-weight:700}body.light .search-wrap input{background:#fff}.search-wrap svg{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--faint)}.nav-section-title{font-size:.72rem;color:var(--faint);text-transform:uppercase;letter-spacing:.16em;font-weight:950;margin:1.05rem .65rem .45rem}.toc a{display:flex;align-items:center;gap:.65rem;padding:.72rem .75rem;border-radius:16px;color:var(--muted);font-size:.88rem;font-weight:750;margin:.15rem 0;transition:.18s ease;border:1px solid transparent}.toc a .num{width:30px;height:30px;border-radius:10px;background:var(--glass);display:grid;place-items:center;color:var(--text);font-size:.74rem;flex:0 0 auto}.toc a:hover,.toc a.active{background:var(--glass2);color:var(--text);border-color:var(--line);transform:translateX(2px)}.sidebar-footer{margin-top:1rem;padding:.85rem;border-radius:18px;border:1px solid var(--line);background:linear-gradient(135deg,rgba(34,197,94,.16),rgba(6,182,212,.09))}.sidebar-footer strong{display:block;font-size:.9rem;margin-bottom:.35rem}.sidebar-footer small{color:var(--muted);line-height:1.55;display:block}main{min-width:0}
+.hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:34px;background:linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.045));box-shadow:var(--shadow);padding:clamp(2rem,5vw,4.5rem);min-height:680px;display:grid;align-items:center}body.light .hero{background:rgba(255,255,255,.72)}.hero:before{content:"";position:absolute;width:580px;height:580px;border-radius:50%;background:radial-gradient(circle,rgba(34,197,94,.30),transparent 62%);right:-230px;top:-230px;filter:blur(4px)}.hero:after{content:"";position:absolute;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,.23),transparent 63%);left:-230px;bottom:-230px;filter:blur(4px)}.hero-content{position:relative;z-index:1}.eyebrow{display:inline-flex;align-items:center;gap:.55rem;padding:.55rem .85rem;border:1px solid var(--line);background:var(--glass);border-radius:999px;color:var(--muted);font-weight:850;font-size:.85rem;margin-bottom:1.1rem}.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 7px rgba(52,211,153,.13)}.gradient-text{background:linear-gradient(135deg,#fff,var(--brand2) 40%,var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}body.light .gradient-text{background:linear-gradient(135deg,#111827,var(--brand),#0891b2);-webkit-background-clip:text;background-clip:text;color:transparent}.hero-sub{font-size:clamp(1.02rem,1.5vw,1.3rem);max-width:790px;color:var(--muted);margin:1.25rem 0 1.4rem;line-height:1.78}.hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.82rem;margin:1.6rem 0;max-width:900px}.metric{padding:1rem;border:1px solid var(--line);border-radius:20px;background:rgba(0,0,0,.12)}body.light .metric{background:rgba(255,255,255,.55)}.metric strong{display:block;font-size:1.45rem;letter-spacing:-.05em}.metric span{display:block;color:var(--muted);font-size:.82rem;margin-top:.25rem;font-weight:700}.hero-actions{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.2rem}
+.page{margin-top:1.3rem;border:1px solid var(--line);border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.045));box-shadow:var(--shadow2);overflow:hidden}body.light .page{background:rgba(255,255,255,.78)}.page-inner{padding:clamp(1.35rem,3.4vw,3rem)}.page-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.3rem}.chapter-kicker{display:inline-flex;align-items:center;gap:.55rem;color:var(--brand2);font-weight:950;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.8rem}.chapter-tools{display:flex;align-items:center;gap:.55rem;flex:0 0 auto}.chapter-no{width:48px;height:48px;border-radius:17px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;color:white;font-weight:950;box-shadow:0 16px 35px rgba(34,197,94,.24);flex:0 0 auto}.ask-llm{border:1px solid rgba(255,255,255,.18);background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(6,182,212,.13));color:var(--text);border-radius:999px;padding:.62rem .8rem;font-weight:900;cursor:pointer;font-size:.8rem;white-space:nowrap}.ask-llm:hover{transform:translateY(-2px);background:linear-gradient(135deg,rgba(34,197,94,.28),rgba(6,182,212,.2))}.lead{font-size:1.14rem;color:var(--muted);max-width:860px;line-height:1.75}.divider{height:1px;background:var(--line);margin:1.55rem 0}.pill-row{display:flex;flex-wrap:wrap;gap:.5rem;margin:.85rem 0 1.2rem}.pill{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:.45rem .7rem;font-size:.78rem;color:var(--muted);font-weight:850}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1.2rem 0}.cards.two{grid-template-columns:repeat(2,1fr)}.cards.three{grid-template-columns:repeat(3,1fr)}.cards.four{grid-template-columns:repeat(4,1fr)}.card{border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.055);padding:1.15rem;position:relative;overflow:hidden}body.light .card{background:rgba(248,250,252,.72)}.card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--brand),var(--brand2),var(--brand3));opacity:.72}.card p,.card li{font-size:.95rem}.card ul{margin:.7rem 0 0;padding-left:1.1rem;color:var(--muted);line-height:1.75}.card li{margin:.25rem 0}.card .icon{font-size:1.35rem;margin-bottom:.55rem;display:inline-block}.card strong{color:var(--text)}.callout{border:1px solid var(--line);border-radius:23px;padding:1.05rem 1.15rem;background:linear-gradient(135deg,rgba(34,197,94,.13),rgba(6,182,212,.08));margin:1.15rem 0;display:flex;gap:.85rem;align-items:flex-start}.callout.warn{background:linear-gradient(135deg,rgba(251,191,36,.14),rgba(251,113,133,.08))}.callout.good{background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(6,182,212,.08))}.callout .mark{width:32px;height:32px;border-radius:12px;background:var(--glass2);display:grid;place-items:center;flex:0 0 auto}.callout p{margin:0;font-size:.98rem}.memory{border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,rgba(251,191,36,.13),rgba(34,197,94,.08));padding:1rem 1.1rem;margin:1rem 0;color:var(--muted);line-height:1.7}.memory strong{color:var(--text)}
+.diagram{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,rgba(0,0,0,.19),rgba(0,0,0,.08));padding:1.1rem;margin:1.15rem 0;overflow:auto}body.light .diagram{background:linear-gradient(180deg,rgba(248,250,252,.95),rgba(241,245,249,.75))}.diagram-title{display:flex;align-items:center;gap:.55rem;font-weight:950;margin-bottom:.9rem;color:var(--text)}.flow{min-width:680px;display:flex;align-items:stretch;gap:.7rem}.flow.vertical{min-width:0;display:grid;grid-template-columns:1fr;max-width:760px;margin:auto}.flow-node{border:1px solid var(--line);background:var(--glass);border-radius:18px;padding:.9rem;text-align:center;display:grid;place-items:center;min-height:75px;font-weight:900;color:var(--text);position:relative}.flow-node small{display:block;color:var(--muted);font-weight:700;margin-top:.25rem}.arrow{display:grid;place-items:center;color:var(--brand2);font-weight:950;font-size:1.45rem;min-width:28px}.flow.vertical .arrow{min-height:22px;transform:rotate(90deg)}.tree{font-family:var(--mono);white-space:pre;line-height:1.55;color:#dce7ff;font-size:.92rem;min-width:max-content;margin:0}.light .tree{color:#1e293b}.split{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;margin:1.1rem 0}.codebox{border:1px solid var(--line);border-radius:22px;background:var(--code);overflow:hidden;margin:1rem 0;box-shadow:0 18px 50px rgba(0,0,0,.18)}.code-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.75rem .9rem;border-bottom:1px solid var(--codeLine);color:#d7e6ff;background:rgba(255,255,255,.04)}.traffic{display:flex;gap:.38rem}.traffic span{width:11px;height:11px;border-radius:50%;display:inline-block}.traffic span:nth-child(1){background:#ff5f56}.traffic span:nth-child(2){background:#ffbd2e}.traffic span:nth-child(3){background:#27c93f}.code-title{font-size:.82rem;font-weight:850;color:#b7c7e8}.copy{border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);color:#e8f1ff;border-radius:12px;padding:.43rem .62rem;font-weight:850;cursor:pointer;font-size:.75rem}.copy:hover{background:rgba(255,255,255,.13)}pre{margin:0;padding:1rem;overflow:auto;color:#e7f0ff;font-family:var(--mono);font-size:.88rem;line-height:1.62}.timeline{display:grid;gap:.7rem;margin:1.15rem 0}.step{display:grid;grid-template-columns:46px 1fr;gap:.85rem;align-items:start}.step-num{width:46px;height:46px;border-radius:16px;background:var(--glass2);border:1px solid var(--line);display:grid;place-items:center;font-weight:950;color:var(--brand2)}.step-body{border:1px solid var(--line);background:var(--glass);border-radius:19px;padding:.9rem 1rem}.step-body p{font-size:.95rem;margin:0}.step-body strong{display:block;margin-bottom:.18rem}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:22px;margin:1rem 0}table{width:100%;border-collapse:collapse;min-width:640px;background:rgba(255,255,255,.035)}th,td{border-bottom:1px solid var(--line);padding:.9rem;text-align:left;vertical-align:top;color:var(--muted);line-height:1.55}th{color:var(--text);font-size:.82rem;text-transform:uppercase;letter-spacing:.1em;background:var(--glass)}tr:last-child td{border-bottom:0}td strong{color:var(--text)}.interview{border:1px solid var(--line);border-radius:26px;background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(139,92,246,.08));padding:1.1rem;margin:1.2rem 0}.interview h3{display:flex;align-items:center;gap:.55rem}.interview p:last-child{margin-bottom:0}
+.quiz-panel{border:1px solid var(--line);border-radius:30px;background:linear-gradient(135deg,rgba(34,197,94,.14),rgba(6,182,212,.09));padding:1.2rem;margin:1.3rem 0}.quiz-meta{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.8rem 0}.badge{border:1px solid var(--line);border-radius:999px;background:var(--glass);padding:.38rem .62rem;font-size:.75rem;font-weight:900;color:var(--muted)}.q-card{border:1px solid var(--line);border-radius:22px;background:rgba(0,0,0,.12);padding:1rem;margin:.85rem 0}.light .q-card{background:rgba(255,255,255,.58)}.q-title{font-weight:950;margin-bottom:.75rem;color:var(--text)}.options{display:grid;gap:.55rem}.option{border:1px solid var(--line);border-radius:16px;background:var(--glass);padding:.75rem .85rem;cursor:pointer;color:var(--muted);font-weight:760;transition:.15s ease}.option:hover{background:var(--glass2);color:var(--text)}.option.correct{border-color:rgba(52,211,153,.7);background:rgba(52,211,153,.15);color:var(--text)}.option.wrong{border-color:rgba(251,113,133,.7);background:rgba(251,113,133,.13);color:var(--text)}.explanation{display:none;margin-top:.75rem;border-top:1px solid var(--line);padding-top:.75rem;color:var(--muted);line-height:1.65}.q-card.answered .explanation{display:block}.flashcards{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin:1.1rem 0}.flashcard{perspective:1000px;min-height:170px}.flash-inner{position:relative;width:100%;height:100%;min-height:170px;transition:transform .55s;transform-style:preserve-3d}.flashcard.flipped .flash-inner{transform:rotateY(180deg)}.flash-front,.flash-back{position:absolute;inset:0;border:1px solid var(--line);border-radius:22px;padding:1rem;background:var(--glass);backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center}.flash-back{transform:rotateY(180deg);background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(6,182,212,.08))}.flash-front strong,.flash-back strong{font-size:1.08rem;margin-bottom:.5rem}.flash-front small,.flash-back small{color:var(--muted);line-height:1.55}.matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin:1.1rem 0}.compare{border:1px solid var(--line);border-radius:24px;padding:1.1rem;background:var(--glass)}.compare h3{margin-bottom:.6rem}.compare ul{margin:.6rem 0 0;padding-left:1.1rem;color:var(--muted);line-height:1.8}.footer{margin:1.3rem 0 0;padding:2rem;border:1px solid var(--line);border-radius:30px;background:var(--glass);text-align:center;color:var(--muted)}.floating-tools{position:fixed;right:1rem;bottom:1rem;display:grid;gap:.55rem;z-index:999}.fab{width:48px;height:48px;border-radius:18px;border:1px solid var(--line);background:rgba(17,26,49,.82);backdrop-filter:blur(20px);color:var(--text);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow2)}body.light .fab{background:rgba(255,255,255,.82)}.fab:hover{transform:translateY(-2px)}.hidden-by-search{display:none!important}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.58);display:none;align-items:center;justify-content:center;z-index:3000;padding:1rem}.modal-backdrop.open{display:flex}.modal{width:min(920px,96vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:28px;background:var(--paper);box-shadow:var(--shadow);padding:1.1rem}.modal-head{display:flex;align-items:start;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line);padding-bottom:.9rem;margin-bottom:.9rem}.modal textarea{width:100%;min-height:300px;border:1px solid var(--line);border-radius:18px;background:rgba(0,0,0,.18);color:var(--text);font-family:var(--mono);padding:1rem;line-height:1.55}.light .modal textarea{background:#fff}.modal-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.8rem}
+@media (max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;z-index:1100;top:0;left:0;height:100vh;width:min(88vw,350px);border-radius:0 26px 26px 0;transform:translateX(-105%);transition:.25s ease;background:rgba(7,11,22,.94);backdrop-filter:blur(20px)}body.light .sidebar{background:rgba(255,255,255,.96)}.sidebar.open{transform:translateX(0)}.hamb{display:inline-flex}.hero-grid{grid-template-columns:repeat(2,1fr)}.cards,.cards.two,.cards.three,.cards.four,.split,.matrix,.flashcards{grid-template-columns:1fr}.top-actions .hide-sm{display:none}.brand-title span:first-child{max-width:230px}.page-head{flex-wrap:wrap}}
+@media (max-width:650px){.topbar-inner{padding:.75rem}.layout{padding:.75rem}.hero{border-radius:26px;min-height:auto;padding:1.5rem}.page{border-radius:24px}.page-inner{padding:1.15rem}.hero-grid{grid-template-columns:1fr}.metric{padding:.85rem}.btn{padding:.68rem .78rem;font-size:.82rem}.top-actions{gap:.38rem}.brand-title small{display:none}.logo{width:38px;height:38px}.page-head{display:block}.chapter-tools{margin-bottom:.8rem}.chapter-no{width:45px;height:45px}pre{font-size:.78rem}.flow{min-width:600px}.cards{gap:.75rem}.callout{display:block}.callout .mark{margin-bottom:.7rem}.floating-tools{right:.7rem;bottom:.7rem}.fab{width:43px;height:43px;border-radius:15px}}
+@media print{.topbar,.sidebar,.floating-tools,.hero-actions,.copy,.quiz-panel .btn,.ask-llm,.modal-backdrop{display:none!important}body{background:white!important;color:#111!important}.layout{display:block;max-width:none;padding:0}.hero,.page,.footer{box-shadow:none!important;border:1px solid #ddd!important;break-inside:avoid;background:white!important}.page{page-break-before:auto}.page-inner,.hero{padding:28px!important}.gradient-text{color:#111!important;background:none!important;-webkit-text-fill-color:#111}.tree,pre{white-space:pre-wrap;color:#111!important}.codebox{background:#fff!important}.code-top{background:#f4f4f4!important;color:#111!important}p,td,li,small{color:#333!important}.btn{display:none!important}}
+</style>
+</head>
+<body class='grain'>
+<a class='skip' href='#main'>Skip to content</a>
+<header class='topbar'>
+  <div class='topbar-inner'>
+    <a class='brand' href='#cover' aria-label='Go to cover'>
+      <span class='logo' aria-hidden='true'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4'><path d='M12 2 4 6.5v11L12 22l8-4.5v-11L12 2Z'/><path d='M8 9.5h8M8 14.5h8M12 6v12'/></svg></span>
+      <span class='brand-title'><span>Node.js Internals Architecture</span><small>Senior Runtime Masterbook · V1</small></span>
+    </a>
+    <div class='top-actions'>
+      <button class='btn small hamb' id='menuBtn' type='button'>☰ Menu</button>
+      <button class='btn small hide-sm' id='expandBtn' type='button'>Expand all</button>
+      <button class='btn small' id='themeBtn' type='button'>🌙 Theme</button>
+      <button class='btn small primary hide-sm' onclick='window.print()' type='button'>Print / PDF</button>
+    </div>
+  </div>
+  <div class='progress' id='progress'></div>
+</header>
+<div class='layout'>
+  <aside class='sidebar' id='sidebar' aria-label='Table of contents'>
+    <div class='search-wrap'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.2-4.2'/></svg><input id='search' type='search' placeholder='Search libuv, V8, nextTick...' /></div>
+    <div class='nav-section-title'>Book Navigation</div>
+    <nav class='toc' id='toc'><a href='#cover'><span class='num'>00</span><span>Cover</span></a>
+<a href='#contents'><span class='num'>01</span><span>Contents Page</span></a>
+<a href='#mental-model'><span class='num'>01</span><span>Core Mental Model</span></a>
+<a href='#node-vs-browser'><span class='num'>02</span><span>Node.js vs Browser Runtime</span></a>
+<a href='#runtime-architecture'><span class='num'>03</span><span>Complete Node.js Runtime Arc</span></a>
+<a href='#v8-in-node'><span class='num'>04</span><span>V8 Engine Inside Node.js</span></a>
+<a href='#callstack-heap'><span class='num'>05</span><span>Call Stack, Heap &amp; Execution</span></a>
+<a href='#garbage-collection'><span class='num'>06</span><span>Garbage Collection &amp; Memory </span></a>
+<a href='#node-core-apis'><span class='num'>07</span><span>Node Core APIs</span></a>
+<a href='#cpp-bindings'><span class='num'>08</span><span>C++ Bindings &amp; Native Bridge</span></a>
+<a href='#libuv-overview'><span class='num'>09</span><span>libuv Overview</span></a>
+<a href='#event-loop-phases'><span class='num'>10</span><span>libuv Event Loop Phases</span></a>
+<a href='#timers-phase'><span class='num'>11</span><span>Timers Phase</span></a>
+<a href='#poll-phase'><span class='num'>12</span><span>Poll Phase</span></a>
+<a href='#check-phase'><span class='num'>13</span><span>Check Phase</span></a>
+<a href='#nexttick'><span class='num'>14</span><span>process.nextTick Queue</span></a>
+<a href='#promise-microtasks'><span class='num'>15</span><span>Promise Microtasks &amp; async/a</span></a>
+<a href='#scheduling-priority'><span class='num'>16</span><span>Full Node Scheduling Priorit</span></a>
+<a href='#thread-pool'><span class='num'>17</span><span>libuv Thread Pool</span></a>
+<a href='#network-vs-file-io'><span class='num'>18</span><span>Network I/O vs File I/O</span></a>
+<a href='#worker-threads'><span class='num'>19</span><span>Worker Threads</span></a>
+<a href='#cluster-child-process'><span class='num'>20</span><span>Cluster vs Child Process vs </span></a>
+<a href='#streams-backpressure'><span class='num'>21</span><span>Streams &amp; Backpressure</span></a>
+<a href='#http-server-lifecycle'><span class='num'>22</span><span>HTTP Server Request Lifecycl</span></a>
+<a href='#performance-debugging'><span class='num'>23</span><span>Performance Debugging &amp; Even</span></a>
+<a href='#modules-packages'><span class='num'>24</span><span>Modules, Package Resolution </span></a>
+<a href='#interview-trainer'><span class='num'>25</span><span>Interview Shorts, Output Pra</span></a>
+<a href='#flashcards'><span class='num'>FC</span><span>Flashcards</span></a>
+<a href='#sources'><span class='num'>SRC</span><span>Sources</span></a></nav>
+    <div class='sidebar-footer'><strong>How to use this</strong><small>Read chapters 1–18 for internals. Then revise workers, streams, performance, and finish with quiz/output practice.</small></div>
+  </aside>
+  <main id='main'>
+    <section class='hero section' id='cover' data-title='Cover Node.js Internals Architecture Senior Runtime Masterbook'>
+      <div class='hero-content'>
+        <span class='eyebrow'><span class='dot'></span> V8 · Node Core · C++ bindings · libuv · OS · production debugging</span>
+        <h1>Node.js Internals <span class='gradient-text'>Architecture</span></h1>
+        <p class='hero-sub'>A premium single-file HTML masterbook for senior backend/full-stack interviews: runtime architecture, event loop phases, nextTick, microtasks, thread pool, workers, cluster, streams, backpressure, performance debugging and quiz practice.</p>
+        <div class='hero-grid'><div class='metric'><strong>25</strong><span>Deep chapters</span></div><div class='metric'><strong>18</strong><span>Quiz cards</span></div><div class='metric'><strong>6</strong><span>Flashcards</span></div><div class='metric'><strong>1</strong><span>Single HTML file</span></div></div>
+        <div class='hero-actions'><a class='btn primary' href='#contents'>Start reading</a><a class='btn' href='#event-loop-phases'>Event loop</a><a class='btn' href='#interview-trainer'>Quiz mode</a><button class='btn' onclick='window.print()' type='button'>Print as PDF</button></div>
+      </div>
+    </section>
+    <section class='page section' id='contents' data-title='Contents Page Node.js Internals Chapters'>
+      <div class='page-inner'>
+        <div class='page-head'><div><div class='chapter-kicker'>Chapter Map</div><h2>Contents Page</h2><p class='lead'>The complete learning order for Node.js internals. Each chapter has a memory hook, deeper explanation, diagrams, interview shortcuts, and an Ask LLM button.</p></div><div class='chapter-tools'><div class='chapter-no'>00</div><button class='ask-llm' data-ask-section='contents'>Ask LLM</button></div></div>
+        <div class='cards two'><div class='card'><span class='icon'>🧠</span><h3>Foundation</h3><p>Understand Node as V8 + Node core + native bridge + libuv + OS.</p></div><div class='card'><span class='icon'>🔁</span><h3>Event Loop</h3><p>Learn phases, nextTick, microtasks, timers, poll and check deeply.</p></div><div class='card'><span class='icon'>🧵</span><h3>Concurrency</h3><p>Thread pool, network vs file I/O, workers, cluster and child process.</p></div><div class='card'><span class='icon'>🚀</span><h3>Production</h3><p>Streams, backpressure, server lifecycle, event loop lag, memory and debugging.</p></div></div>
+        <div class='table-wrap'><table><thead><tr><th>No.</th><th>Chapter</th><th>Memory hook</th></tr></thead><tbody><tr><td><strong>01</strong></td><td>Core Mental Model: What Node.js Really Is</td><td>Node.js is not just JavaScript. It is JavaScript + V8 + Node core APIs + C++ bindings + libuv + the operating system.</td></tr>
+<tr><td><strong>02</strong></td><td>Node.js vs Browser Runtime</td><td>Both run JavaScript, but they are different host environments. Browser has DOM and rendering; Node has OS, filesystem, networking and process APIs.</td></tr>
+<tr><td><strong>03</strong></td><td>Complete Node.js Runtime Architecture</td><td>The most complete diagram starts from your JS file and ends at OS-level I/O.</td></tr>
+<tr><td><strong>04</strong></td><td>V8 Engine Inside Node.js</td><td>V8 is the engine. Node is the runtime around it. V8 runs the JavaScript; Node provides the server-side world.</td></tr>
+<tr><td><strong>05</strong></td><td>Call Stack, Heap &amp; Execution Context</td><td>Every output prediction question starts with the call stack. Every memory question starts with the heap and references.</td></tr>
+<tr><td><strong>06</strong></td><td>Garbage Collection &amp; Memory in Node.js</td><td>Memory leaks are not objects that cannot be freed. They are objects your program accidentally keeps reachable.</td></tr>
+<tr><td><strong>07</strong></td><td>Node Core APIs</td><td>Node core APIs are the JavaScript-facing surface that makes server-side work possible.</td></tr>
+<tr><td><strong>08</strong></td><td>C++ Bindings &amp; Native Bridge</td><td>This is the hidden bridge between JavaScript APIs and lower-level system calls.</td></tr>
+<tr><td><strong>09</strong></td><td>libuv Overview</td><td>libuv is the engine room for Node&#x27;s event loop, async I/O abstraction, timers and worker pool.</td></tr>
+<tr><td><strong>10</strong></td><td>libuv Event Loop Phases</td><td>Node&#x27;s event loop is not one queue. It has phases, and each phase has its own kind of callbacks.</td></tr>
+<tr><td><strong>11</strong></td><td>Timers Phase: setTimeout &amp; setInterval</td><td>A timer says “not before this time”, not “exactly at this time”.</td></tr>
+<tr><td><strong>12</strong></td><td>Poll Phase: I/O Heart of Node</td><td>Poll is where Node receives I/O callbacks and may wait for new I/O.</td></tr>
+<tr><td><strong>13</strong></td><td>Check Phase: setImmediate</td><td>setImmediate is designed to run after the poll phase.</td></tr>
+<tr><td><strong>14</strong></td><td>process.nextTick Queue</td><td>nextTick is powerful and dangerous. It runs before promise microtasks in CommonJS-style scheduling.</td></tr>
+<tr><td><strong>15</strong></td><td>Promise Microtasks &amp; async/await</td><td>Promises and await continuations are microtasks. They run after nextTick but before normal event loop callbacks in typical CommonJS ordering.</td></tr>
+<tr><td><strong>16</strong></td><td>Full Node Scheduling Priority</td><td>For output questions, this is your scoring formula.</td></tr>
+<tr><td><strong>17</strong></td><td>libuv Thread Pool</td><td>The thread pool is why Node can run some expensive operations away from the event loop thread, but it can also become a bottleneck.</td></tr>
+<tr><td><strong>18</strong></td><td>Network I/O vs File I/O</td><td>Network and file I/O are both async from your JS point of view, but internally they are often handled differently.</td></tr>
+<tr><td><strong>19</strong></td><td>Worker Threads</td><td>Worker threads give Node real parallel JavaScript execution for CPU-heavy work.</td></tr>
+<tr><td><strong>20</strong></td><td>Cluster vs Child Process vs Worker Threads</td><td>Worker threads share a process. Cluster and child processes create separate processes.</td></tr>
+<tr><td><strong>21</strong></td><td>Streams &amp; Backpressure</td><td>Streams are Node&#x27;s memory-safe way to process large data piece by piece instead of loading everything at once.</td></tr>
+<tr><td><strong>22</strong></td><td>HTTP Server Request Lifecycle</td><td>A web framework is just a layer above Node&#x27;s HTTP server, sockets and request/response streams.</td></tr>
+<tr><td><strong>23</strong></td><td>Performance Debugging &amp; Event Loop Lag</td><td>In Node, one blocked event loop can make every user request slower.</td></tr>
+<tr><td><strong>24</strong></td><td>Modules, Package Resolution &amp; Loading</td><td>Before Node runs your code, it must resolve, load, wrap/cache or evaluate modules.</td></tr>
+<tr><td><strong>25</strong></td><td>Interview Shorts, Output Practice &amp; Quiz</td><td>This final chapter turns the architecture into interview answers and output prediction practice.</td></tr></tbody></table></div>
+      </div>
+    </section>
+    
+    <section class='page section' id='mental-model' data-title='Core Mental Model: What Node.js Really Is Node.js is not just JavaScript. It is JavaScript + V8 + Node core APIs + C++ bindings + libuv + the operating system.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part A · Foundation</div><h2>Core Mental Model: What Node.js Really Is</h2><p class='lead'>Node.js is not just JavaScript. It is JavaScript + V8 + Node core APIs + C++ bindings + libuv + the operating system.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>01</div><button class='ask-llm' data-ask-section='mental-model'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Easy memory model</div><pre class='tree'>Node.js Runtime
+=
+JavaScript Code
++ V8 Engine
++ Node Core APIs
++ Native C++ Bindings
++ libuv
++ Operating System</pre></div>
+        <div class='cards three'>
+          <div class='card'><span class='icon'>🧠</span><h3>JavaScript layer</h3><p>Your application code, npm packages, callbacks, promises, async functions, classes and modules.</p></div>
+          <div class='card'><span class='icon'>⚙️</span><h3>Runtime layer</h3><p>Node exposes APIs like <code>fs</code>, <code>http</code>, <code>crypto</code>, <code>stream</code>, <code>timers</code> and <code>process</code>.</p></div>
+          <div class='card'><span class='icon'>🧩</span><h3>Native layer</h3><p>Node connects JavaScript to lower-level C/C++ systems, libuv, OpenSSL, zlib and the OS kernel.</p></div>
+        </div>
+        <div class='callout good'><div class='mark'>✅</div><p><strong>Interview shortcut:</strong> JavaScript in Node is single-threaded by default, but the Node runtime is not just one thread. Async work can be delegated to the OS, libuv, or the libuv thread pool.</p></div>
+        <div class='interview'><h3>🎤 60-second answer</h3><p>Node.js is a JavaScript runtime built on V8. V8 executes JavaScript and manages memory. Node adds server-side APIs such as filesystem, networking, crypto, streams, process and timers. Many of those APIs are implemented through Node core and native C++ bindings, then delegated to libuv and the operating system. So your JavaScript runs on one main execution thread by default, but Node uses OS async I/O and a worker thread pool to avoid blocking the event loop.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='node-vs-browser' data-title='Node.js vs Browser Runtime Both run JavaScript, but they are different host environments. Browser has DOM and rendering; Node has OS, filesystem, networking and process APIs.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part A · Foundation</div><h2>Node.js vs Browser Runtime</h2><p class='lead'>Both run JavaScript, but they are different host environments. Browser has DOM and rendering; Node has OS, filesystem, networking and process APIs.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>02</div><button class='ask-llm' data-ask-section='node-vs-browser'>Ask LLM</button></div>
+        </div>
+        
+        <div class='matrix'>
+          <div class='compare'><h3>Browser Runtime</h3><ul><li>DOM, CSSOM, rendering pipeline</li><li>Web APIs: fetch, timers, events, storage</li><li>Task, microtask, animation and idle scheduling</li><li>UI responsiveness and frames matter</li></ul></div>
+          <div class='compare'><h3>Node.js Runtime</h3><ul><li>No DOM and no browser rendering pipeline</li><li>Filesystem, TCP/UDP, HTTP, crypto, zlib, streams</li><li>libuv event loop phases</li><li>Process, OS and server performance matter</li></ul></div>
+        </div>
+        <div class='table-wrap'><table><thead><tr><th>Area</th><th>Browser</th><th>Node.js</th></tr></thead><tbody>
+          <tr><td><strong>Primary job</strong></td><td>Interactive UI and web pages</td><td>Servers, CLIs, APIs, tools, background jobs</td></tr>
+          <tr><td><strong>Host APIs</strong></td><td><code>document</code>, <code>window</code>, DOM events</td><td><code>fs</code>, <code>net</code>, <code>http</code>, <code>process</code></td></tr>
+          <tr><td><strong>Event loop</strong></td><td>Connected to rendering</td><td>libuv phases: timers, poll, check, close</td></tr>
+          <tr><td><strong>Parallelism</strong></td><td>Web Workers</td><td>worker_threads, cluster, child_process</td></tr>
+        </tbody></table></div>
+        <div class='memory'><strong>Remember:</strong> Browser = JS + DOM + rendering. Node = JS + OS APIs + libuv.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='runtime-architecture' data-title='Complete Node.js Runtime Architecture The most complete diagram starts from your JS file and ends at OS-level I/O.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part A · Foundation</div><h2>Complete Node.js Runtime Architecture</h2><p class='lead'>The most complete diagram starts from your JS file and ends at OS-level I/O.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>03</div><button class='ask-llm' data-ask-section='runtime-architecture'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Full request path through Node</div><pre class='tree'>Your JavaScript App
+        |
+        v
+V8 Engine
+        |
+        v
+Node Core JavaScript APIs
+        |
+        v
+Native C++ Bindings
+        |
+        v
+libuv
+        |
+        +-- Event Loop
+        +-- Thread Pool
+        +-- Timers
+        +-- TCP / UDP abstraction
+        |
+        v
+Operating System Kernel
+        |
+        +-- Network sockets
+        +-- File system
+        +-- Processes / signals
+        +-- CPU scheduling</pre></div>
+        <div class='cards four'>
+          <div class='card'><h3>V8</h3><p>Executes JavaScript, optimizes hot code, manages heap memory and promise microtasks.</p></div>
+          <div class='card'><h3>Node Core</h3><p>Provides APIs like <code>fs</code>, <code>http</code>, <code>stream</code>, <code>events</code>, <code>timers</code>.</p></div>
+          <div class='card'><h3>Bindings</h3><p>Bridge JavaScript calls to native C/C++ functionality.</p></div>
+          <div class='card'><h3>libuv + OS</h3><p>Coordinates event loop, async I/O and thread pool work.</p></div>
+        </div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>When I call a Node API, I am often not directly calling the OS from JavaScript. I call a Node JavaScript wrapper, Node uses native bindings, native code talks to libuv or another native library, then libuv coordinates with the OS and later schedules the callback back into the event loop.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='v8-in-node' data-title='V8 Engine Inside Node.js V8 is the engine. Node is the runtime around it. V8 runs the JavaScript; Node provides the server-side world.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part B · V8</div><h2>V8 Engine Inside Node.js</h2><p class='lead'>V8 is the engine. Node is the runtime around it. V8 runs the JavaScript; Node provides the server-side world.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>04</div><button class='ask-llm' data-ask-section='v8-in-node'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>V8 responsibilities</div><pre class='tree'>V8 Engine
+|
+├── Parser
+├── Ignition Interpreter
+├── TurboFan Optimizing Compiler
+├── Call Stack
+├── Heap
+├── Execution Contexts
+├── Microtask Queue for Promises
+└── Garbage Collector</pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Ignition</h3><p>V8's interpreter executes bytecode. It helps code start quickly before heavy optimization.</p></div>
+          <div class='card'><h3>TurboFan</h3><p>Optimizes hot code paths. If assumptions become invalid, V8 can deoptimize.</p></div>
+          <div class='card'><h3>Hidden classes</h3><p>V8 tracks object shapes. Stable object shapes help optimization; changing shapes repeatedly can hurt performance.</p></div>
+        </div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Object shape example</span><button class='copy' data-copy>Copy</button></div><pre><code>function createUser(name, age) {
+  return { name, age };
+}
+
+const a = createUser('Asha', 25);
+const b = createUser('Ravi', 28);
+
+// Better: same property order, stable shape.
+// Worse: adding random properties later to each object.</code></pre></div>
+        <div class='memory'><strong>Remember:</strong> Stable shapes, small functions, and avoiding unnecessary megamorphic patterns can help V8 optimize.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='callstack-heap' data-title='Call Stack, Heap &amp; Execution Context Every output prediction question starts with the call stack. Every memory question starts with the heap and references.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part B · V8</div><h2>Call Stack, Heap &amp; Execution Context</h2><p class='lead'>Every output prediction question starts with the call stack. Every memory question starts with the heap and references.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>05</div><button class='ask-llm' data-ask-section='callstack-heap'>Ask LLM</button></div>
+        </div>
+        
+        <div class='cards three'>
+          <div class='card'><h3>Call Stack</h3><p>Tracks currently running function calls. If it is busy, Node cannot process another JS callback.</p></div>
+          <div class='card'><h3>Heap</h3><p>Stores objects, arrays, functions, closures and long-lived data. Memory leaks happen when data remains reachable.</p></div>
+          <div class='card'><h3>Execution Context</h3><p>Contains lexical environment, variable environment, scope chain and <code>this</code>.</p></div>
+        </div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Stack flow</span><button class='copy' data-copy>Copy</button></div><pre><code>function parse() {
+  return JSON.parse('{"ok":true}');
+}
+
+function handleRequest() {
+  const data = parse();
+  return data.ok;
+}
+
+handleRequest();</code></pre></div>
+        <div class='timeline'>
+          <div class='step'><div class='step-num'>1</div><div class='step-body'><strong><code>handleRequest()</code> enters stack</strong><p>Node starts executing the current JS callback.</p></div></div>
+          <div class='step'><div class='step-num'>2</div><div class='step-body'><strong><code>parse()</code> enters stack</strong><p>Nested function calls add stack frames.</p></div></div>
+          <div class='step'><div class='step-num'>3</div><div class='step-body'><strong>Frames return</strong><p>When the stack is empty, Node can continue with microtasks and event loop callbacks.</p></div></div>
+        </div>
+        <div class='callout warn'><div class='mark'>⚠️</div><p><strong>Production warning:</strong> A long synchronous function blocks the event loop. During that time, no other request callback can run on that main thread.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='garbage-collection' data-title='Garbage Collection &amp; Memory in Node.js Memory leaks are not objects that cannot be freed. They are objects your program accidentally keeps reachable.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part B · V8</div><h2>Garbage Collection &amp; Memory in Node.js</h2><p class='lead'>Memory leaks are not objects that cannot be freed. They are objects your program accidentally keeps reachable.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>06</div><button class='ask-llm' data-ask-section='garbage-collection'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>V8 heap model</div><pre class='tree'>V8 Heap
+|
+├── Young Generation
+|   └── Short-lived objects
+|
+├── Old Generation
+|   └── Long-lived objects
+|
+└── External / Native Memory
+    ├── Buffers
+    ├── Native addons
+    └── Some C++ allocations</pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Minor GC</h3><p>Collects short-lived objects in the young generation. Usually frequent and relatively fast.</p></div>
+          <div class='card'><h3>Major GC</h3><p>Collects old generation memory. Can be more expensive and can cause pauses.</p></div>
+          <div class='card'><h3>Leaks</h3><p>Common causes include global maps, unbounded caches, event listeners, timers, closures and retained request objects.</p></div>
+        </div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Simple leak pattern</span><button class='copy' data-copy>Copy</button></div><pre><code>const cache = new Map();
+
+function handleUser(userId, profile) {
+  // Problem: no eviction strategy.
+  cache.set(userId, profile);
+}</code></pre></div>
+        <div class='memory'><strong>Remember:</strong> GC can only free unreachable memory. If your app still references it, it stays.</div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>Node memory is mainly managed by V8's garbage collector, but Buffers and native modules can also involve external memory. A memory leak happens when data remains reachable accidentally, for example through global caches, listeners, timers or closures. I would debug it with <code>process.memoryUsage()</code>, heap snapshots, allocation timelines and checking retained references.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='node-core-apis' data-title='Node Core APIs Node core APIs are the JavaScript-facing surface that makes server-side work possible.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part C · Node Core</div><h2>Node Core APIs</h2><p class='lead'>Node core APIs are the JavaScript-facing surface that makes server-side work possible.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>07</div><button class='ask-llm' data-ask-section='node-core-apis'>Ask LLM</button></div>
+        </div>
+        
+        <div class='cards four'>
+          <div class='card'><h3><code>fs</code></h3><p>File operations: read, write, stat, streams and watchers.</p></div>
+          <div class='card'><h3><code>http</code></h3><p>HTTP server/client primitives used under frameworks like Express and Fastify.</p></div>
+          <div class='card'><h3><code>net</code></h3><p>TCP sockets and lower-level networking.</p></div>
+          <div class='card'><h3><code>crypto</code></h3><p>Hashing, encryption, key generation and CPU-heavy crypto operations.</p></div>
+          <div class='card'><h3><code>stream</code></h3><p>Readable, writable, duplex and transform streams.</p></div>
+          <div class='card'><h3><code>events</code></h3><p>EventEmitter pattern used throughout Node.</p></div>
+          <div class='card'><h3><code>process</code></h3><p>Environment, signals, memory, argv, cwd, exit, nextTick.</p></div>
+          <div class='card'><h3><code>timers</code></h3><p>setTimeout, setInterval, setImmediate and timer handles.</p></div>
+        </div>
+        <div class='diagram'><div class='diagram-title'>API flow example</div><pre class='tree'>fs.readFile('data.json', callback)
+        |
+        v
+Node fs JavaScript wrapper
+        |
+        v
+Native binding
+        |
+        v
+libuv thread pool
+        |
+        v
+OS filesystem
+        |
+        v
+Callback scheduled back to event loop</pre></div>
+        <div class='memory'><strong>Remember:</strong> Node core APIs look like JavaScript, but many of them are bridges into native and OS-level work.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='cpp-bindings' data-title='C++ Bindings &amp; Native Bridge This is the hidden bridge between JavaScript APIs and lower-level system calls.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part C · Node Core</div><h2>C++ Bindings &amp; Native Bridge</h2><p class='lead'>This is the hidden bridge between JavaScript APIs and lower-level system calls.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>08</div><button class='ask-llm' data-ask-section='cpp-bindings'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Native bridge mental model</div><pre class='tree'>JavaScript API
+   |
+   v
+Node internal JS wrapper
+   |
+   v
+C++ binding
+   |
+   +-- libuv
+   +-- OpenSSL
+   +-- zlib
+   +-- llhttp
+   +-- OS syscalls</pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Why bindings exist</h3><p>JavaScript cannot directly call OS filesystem or OpenSSL primitives. Node exposes safe wrappers around native capabilities.</p></div>
+          <div class='card'><h3>Performance</h3><p>Native libraries can perform CPU-heavy or system-level work efficiently, but bad native code can crash the process.</p></div>
+          <div class='card'><h3>Node-API</h3><p>Node-API provides a stable way to build native addons across Node versions.</p></div>
+        </div>
+        <div class='callout'><div class='mark'>🧩</div><p><strong>Interview shortcut:</strong> Node is not “pure JavaScript”. It is a runtime where JavaScript is the top layer and native systems do much of the heavy lifting.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='libuv-overview' data-title='libuv Overview libuv is the engine room for Node&#x27;s event loop, async I/O abstraction, timers and worker pool.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part D · libuv</div><h2>libuv Overview</h2><p class='lead'>libuv is the engine room for Node&#x27;s event loop, async I/O abstraction, timers and worker pool.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>09</div><button class='ask-llm' data-ask-section='libuv-overview'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>libuv responsibilities</div><pre class='tree'>libuv
+|
+├── Event Loop
+├── Timers
+├── TCP / UDP abstraction
+├── Async file system operations
+├── Thread Pool
+├── DNS helpers
+├── Signals
+└── Cross-platform OS abstraction</pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Cross-platform</h3><p>libuv hides differences between Linux, macOS and Windows async mechanisms.</p></div>
+          <div class='card'><h3>Event loop</h3><p>Runs phase by phase and decides when callbacks are ready to execute.</p></div>
+          <div class='card'><h3>Thread pool</h3><p>Used for APIs that cannot rely purely on non-blocking OS mechanisms, such as many file and crypto operations.</p></div>
+        </div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>libuv is the C library Node uses to implement its event loop and abstract asynchronous I/O across operating systems. It gives Node timers, networking abstractions, the poll phase, a worker thread pool and mechanisms to schedule completed operations back to JavaScript callbacks.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='event-loop-phases' data-title='libuv Event Loop Phases Node&#x27;s event loop is not one queue. It has phases, and each phase has its own kind of callbacks.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part D · libuv</div><h2>libuv Event Loop Phases</h2><p class='lead'>Node&#x27;s event loop is not one queue. It has phases, and each phase has its own kind of callbacks.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>10</div><button class='ask-llm' data-ask-section='event-loop-phases'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Node event loop phases</div><div class='flow vertical'>
+          <div class='flow-node'>timers<small>setTimeout / setInterval</small></div><div class='arrow'>→</div>
+          <div class='flow-node'>pending callbacks<small>some deferred system callbacks</small></div><div class='arrow'>→</div>
+          <div class='flow-node'>idle, prepare<small>internal use</small></div><div class='arrow'>→</div>
+          <div class='flow-node'>poll<small>I/O callbacks and waiting for I/O</small></div><div class='arrow'>→</div>
+          <div class='flow-node'>check<small>setImmediate</small></div><div class='arrow'>→</div>
+          <div class='flow-node'>close callbacks<small>socket close and cleanup</small></div>
+        </div></div>
+        <div class='table-wrap'><table><thead><tr><th>Phase</th><th>What happens</th><th>Memory hook</th></tr></thead><tbody>
+          <tr><td><strong>Timers</strong></td><td>Callbacks scheduled by <code>setTimeout</code> and <code>setInterval</code>.</td><td>Clock-based callbacks.</td></tr>
+          <tr><td><strong>Pending callbacks</strong></td><td>Some I/O callbacks deferred to the next loop iteration.</td><td>Deferred system callbacks.</td></tr>
+          <tr><td><strong>Poll</strong></td><td>Retrieves new I/O events and executes I/O callbacks.</td><td>Where Node waits for I/O.</td></tr>
+          <tr><td><strong>Check</strong></td><td>Runs <code>setImmediate</code> callbacks.</td><td>Immediate after poll.</td></tr>
+          <tr><td><strong>Close</strong></td><td>Runs close callbacks like socket close events.</td><td>Cleanup phase.</td></tr>
+        </tbody></table></div>
+        <div class='callout good'><div class='mark'>✅</div><p><strong>Senior point:</strong> Microtasks and <code>process.nextTick</code> are not simply another libuv phase. They are drained between JS callback boundaries according to Node/V8 scheduling rules.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='timers-phase' data-title='Timers Phase: setTimeout &amp; setInterval A timer says “not before this time”, not “exactly at this time”.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part D · libuv</div><h2>Timers Phase: setTimeout &amp; setInterval</h2><p class='lead'>A timer says “not before this time”, not “exactly at this time”.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>11</div><button class='ask-llm' data-ask-section='timers-phase'>Ask LLM</button></div>
+        </div>
+        
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Timer delay is a threshold</span><button class='copy' data-copy>Copy</button></div><pre><code>setTimeout(() => {
+  console.log('timer callback');
+}, 0);
+
+// Heavy sync work delays the timer.
+const start = Date.now();
+while (Date.now() - start < 100) {}
+
+console.log('sync done');</code></pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Threshold</h3><p><code>setTimeout(fn, 0)</code> means run after at least 0ms and when the event loop can reach the timer callback.</p></div>
+          <div class='card'><h3>Blocked loop</h3><p>If the call stack is busy, timer callbacks wait.</p></div>
+          <div class='card'><h3>Interval caution</h3><p><code>setInterval</code> can pile pressure if the callback work takes too long.</p></div>
+        </div>
+        <div class='memory'><strong>Remember:</strong> Timer delay is a minimum threshold. The event loop must be free enough to run it.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='poll-phase' data-title='Poll Phase: I/O Heart of Node Poll is where Node receives I/O callbacks and may wait for new I/O.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part D · libuv</div><h2>Poll Phase: I/O Heart of Node</h2><p class='lead'>Poll is where Node receives I/O callbacks and may wait for new I/O.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>12</div><button class='ask-llm' data-ask-section='poll-phase'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Poll phase mental model</div><pre class='tree'>Poll Phase
+|
+├── Check completed I/O
+├── Execute I/O callbacks
+├── Wait for new I/O if appropriate
+└── Move to check phase if setImmediate is queued</pre></div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>I/O callback example</span><button class='copy' data-copy>Copy</button></div><pre><code>const fs = require('node:fs');
+
+fs.readFile(__filename, () => {
+  console.log('file read callback');
+});</code></pre></div>
+        <div class='cards two'>
+          <div class='card'><h3>Network callbacks</h3><p>Socket and HTTP callbacks are commonly delivered through I/O readiness mechanisms.</p></div>
+          <div class='card'><h3>File callbacks</h3><p>Many filesystem operations complete through the libuv worker pool, then their callback is scheduled back.</p></div>
+        </div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>The poll phase is central to Node because it handles many I/O callbacks and can wait for new I/O events. If the poll queue has callbacks, Node executes them. If not, Node may wait, move to timers if timers are ready, or move to the check phase if <code>setImmediate</code> callbacks are queued.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='check-phase' data-title='Check Phase: setImmediate setImmediate is designed to run after the poll phase.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part D · libuv</div><h2>Check Phase: setImmediate</h2><p class='lead'>setImmediate is designed to run after the poll phase.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>13</div><button class='ask-llm' data-ask-section='check-phase'>Ask LLM</button></div>
+        </div>
+        
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>setImmediate vs setTimeout outside I/O</span><button class='copy' data-copy>Copy</button></div><pre><code>setTimeout(() => console.log('timeout'), 0);
+setImmediate(() => console.log('immediate'));
+
+// Outside I/O, order can be timing-dependent.</code></pre></div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Inside I/O callback</span><button class='copy' data-copy>Copy</button></div><pre><code>const fs = require('node:fs');
+
+fs.readFile(__filename, () => {
+  setTimeout(() => console.log('timeout'), 0);
+  setImmediate(() => console.log('immediate'));
+});
+
+// Commonly: immediate before timeout inside I/O.</code></pre></div>
+        <div class='callout'><div class='mark'>🧭</div><p><strong>Remember:</strong> <code>setImmediate</code> belongs to the check phase. Inside an I/O callback, the event loop is around poll, so check usually comes before the next timers phase.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='nexttick' data-title='process.nextTick Queue nextTick is powerful and dangerous. It runs before promise microtasks in CommonJS-style scheduling.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part E · Queues</div><h2>process.nextTick Queue</h2><p class='lead'>nextTick is powerful and dangerous. It runs before promise microtasks in CommonJS-style scheduling.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>14</div><button class='ask-llm' data-ask-section='nexttick'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>nextTick position</div><pre class='tree'>Current JS callback finishes
+        |
+        v
+process.nextTick queue
+        |
+        v
+Promise microtask queue
+        |
+        v
+Continue event loop phases</pre></div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>nextTick vs promise</span><button class='copy' data-copy>Copy</button></div><pre><code>Promise.resolve().then(() => console.log('promise'));
+process.nextTick(() => console.log('nextTick'));
+console.log('sync');
+
+// CommonJS expected: sync, nextTick, promise</code></pre></div>
+        <div class='callout warn'><div class='mark'>⚠️</div><p><strong>Starvation risk:</strong> Recursively scheduling <code>process.nextTick</code> can prevent Node from reaching I/O phases.</p></div>
+        <div class='interview'><h3>🎤 Interview short</h3><p><code>process.nextTick</code> schedules a callback to run immediately after the current operation finishes and before Node continues the event loop. It is useful for APIs that must emit asynchronously but very soon. But overusing or recursively scheduling it can starve I/O because Node keeps draining nextTick callbacks before moving forward.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='promise-microtasks' data-title='Promise Microtasks &amp; async/await Promises and await continuations are microtasks. They run after nextTick but before normal event loop callbacks in typical CommonJS ordering.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part E · Queues</div><h2>Promise Microtasks &amp; async/await</h2><p class='lead'>Promises and await continuations are microtasks. They run after nextTick but before normal event loop callbacks in typical CommonJS ordering.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>15</div><button class='ask-llm' data-ask-section='promise-microtasks'>Ask LLM</button></div>
+        </div>
+        
+        <div class='cards three'>
+          <div class='card'><h3><code>Promise.then</code></h3><p>Schedules a reaction into the microtask queue when the promise settles.</p></div>
+          <div class='card'><h3><code>queueMicrotask</code></h3><p>Directly queues a microtask using the same general microtask mechanism used by promise handlers.</p></div>
+          <div class='card'><h3><code>await</code></h3><p>Suspends the async function and resumes the continuation as a microtask after the awaited value settles.</p></div>
+        </div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>async/await order</span><button class='copy' data-copy>Copy</button></div><pre><code>async function run() {
+  console.log('A');
+  await null;
+  console.log('B');
+}
+
+run();
+console.log('C');
+
+// A, C, B</code></pre></div>
+        <div class='memory'><strong>Remember:</strong> await pauses the function, not the Node process.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='scheduling-priority' data-title='Full Node Scheduling Priority For output questions, this is your scoring formula.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part E · Queues</div><h2>Full Node Scheduling Priority</h2><p class='lead'>For output questions, this is your scoring formula.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>16</div><button class='ask-llm' data-ask-section='scheduling-priority'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>CommonJS scheduling priority</div><pre class='tree'>1. Current synchronous JavaScript
+2. process.nextTick queue
+3. Promise / queueMicrotask queue
+4. Event loop phase callbacks
+   ├── timers
+   ├── poll I/O
+   ├── check setImmediate
+   └── close callbacks</pre></div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Classic interview output</span><button class='copy' data-copy>Copy</button></div><pre><code>setTimeout(() => console.log('timeout'), 0);
+setImmediate(() => console.log('immediate'));
+Promise.resolve().then(() => console.log('promise'));
+process.nextTick(() => console.log('nextTick'));
+console.log('sync');</code></pre></div>
+        <div class='callout good'><div class='mark'>✅</div><p><strong>Safe answer:</strong> <code>sync</code> first, then <code>nextTick</code>, then <code>promise</code>. The order between <code>timeout</code> and <code>immediate</code> can be environment/timing dependent outside I/O. Inside I/O, <code>setImmediate</code> commonly runs before the timer.</p></div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>My first pass is synchronous code. Then I drain Node's nextTick queue, then promise microtasks. After that, Node continues through libuv phases, so timers, I/O poll callbacks, setImmediate and close callbacks run depending on the current phase and readiness.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='thread-pool' data-title='libuv Thread Pool The thread pool is why Node can run some expensive operations away from the event loop thread, but it can also become a bottleneck.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part F · Async Work</div><h2>libuv Thread Pool</h2><p class='lead'>The thread pool is why Node can run some expensive operations away from the event loop thread, but it can also become a bottleneck.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>17</div><button class='ask-llm' data-ask-section='thread-pool'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Thread pool flow</div><pre class='tree'>JS calls async API
+        |
+        v
+Node native binding
+        |
+        v
+libuv work queue
+        |
+        v
+Worker thread pool
+        |
+        v
+Completion queued back to event loop
+        |
+        v
+JS callback / promise continuation</pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Uses thread pool</h3><p>Many <code>fs</code>, <code>crypto</code>, <code>zlib</code> and <code>dns.lookup</code> operations can use the pool.</p></div>
+          <div class='card'><h3>Default size</h3><p>The libuv thread pool has a default size. It can be configured with <code>UV_THREADPOOL_SIZE</code> before the process starts.</p></div>
+          <div class='card'><h3>Saturation</h3><p>Heavy crypto or compression can occupy workers and delay unrelated filesystem operations.</p></div>
+        </div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Thread pool pressure</span><button class='copy' data-copy>Copy</button></div><pre><code>const crypto = require('node:crypto');
+
+for (let i = 0; i < 8; i++) {
+  crypto.pbkdf2('secret', 'salt', 500000, 64, 'sha512', () => {
+    console.log('crypto done', i);
+  });
+}</code></pre></div>
+        <div class='memory'><strong>Remember:</strong> Event loop free does not mean all async work is free. The worker pool can be full.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='network-vs-file-io' data-title='Network I/O vs File I/O Network and file I/O are both async from your JS point of view, but internally they are often handled differently.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part F · Async Work</div><h2>Network I/O vs File I/O</h2><p class='lead'>Network and file I/O are both async from your JS point of view, but internally they are often handled differently.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>18</div><button class='ask-llm' data-ask-section='network-vs-file-io'>Ask LLM</button></div>
+        </div>
+        
+        <div class='matrix'>
+          <div class='compare'><h3>Network I/O</h3><ul><li>Often uses OS readiness notifications</li><li>Good fit for event loop model</li><li>Examples: TCP, HTTP, sockets</li><li>Usually not consuming libuv thread pool for normal socket readiness</li></ul></div>
+          <div class='compare'><h3>File I/O</h3><ul><li>Many operations use libuv thread pool</li><li>Filesystem APIs complete off the event loop thread</li><li>Callbacks return when worker operation finishes</li><li>Can be delayed by thread pool saturation</li></ul></div>
+        </div>
+        <div class='diagram'><div class='diagram-title'>Two async paths</div><pre class='tree'>HTTP socket ready
+  -> OS notifies libuv
+  -> poll callback
+  -> JS handler
+
+fs.readFile
+  -> libuv thread pool
+  -> OS filesystem work
+  -> completion callback queued
+  -> JS handler</pre></div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>Network I/O is commonly handled through OS-level non-blocking readiness, while many filesystem operations use the libuv thread pool. Both feel asynchronous in JavaScript, but file operations may compete with other thread pool users like crypto, zlib and DNS lookup.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='worker-threads' data-title='Worker Threads Worker threads give Node real parallel JavaScript execution for CPU-heavy work.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part G · Concurrency</div><h2>Worker Threads</h2><p class='lead'>Worker threads give Node real parallel JavaScript execution for CPU-heavy work.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>19</div><button class='ask-llm' data-ask-section='worker-threads'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Worker thread model</div><pre class='tree'>Main Thread
+|
+├── Event Loop
+├── V8 Isolate
+└── MessagePort
+        |
+        v
+Worker Thread
+|
+├── Separate Event Loop
+├── Separate V8 Isolate
+└── MessagePort</pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Best for</h3><p>CPU-heavy JavaScript: parsing, image processing, calculations, compression wrappers, heavy transformations.</p></div>
+          <div class='card'><h3>Communication</h3><p>Workers communicate using messages, transferable objects or shared memory with <code>SharedArrayBuffer</code>.</p></div>
+          <div class='card'><h3>Not for</h3><p>Do not use workers just to make normal database or HTTP I/O async. Node already handles I/O asynchronously.</p></div>
+        </div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Worker thread skeleton</span><button class='copy' data-copy>Copy</button></div><pre><code>const { Worker, isMainThread, parentPort, workerData } = require('node:worker_threads');
+
+if (isMainThread) {
+  const worker = new Worker(__filename, { workerData: 42 });
+  worker.on('message', console.log);
+} else {
+  parentPort.postMessage(workerData * 2);
+}</code></pre></div>
+        <div class='memory'><strong>Remember:</strong> Worker threads are for CPU parallelism, not for fixing normal async I/O.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='cluster-child-process' data-title='Cluster vs Child Process vs Worker Threads Worker threads share a process. Cluster and child processes create separate processes.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part G · Concurrency</div><h2>Cluster vs Child Process vs Worker Threads</h2><p class='lead'>Worker threads share a process. Cluster and child processes create separate processes.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>20</div><button class='ask-llm' data-ask-section='cluster-child-process'>Ask LLM</button></div>
+        </div>
+        
+        <div class='table-wrap'><table><thead><tr><th>Feature</th><th>Worker Threads</th><th>Cluster</th><th>Child Process</th></tr></thead><tbody>
+          <tr><td><strong>Unit</strong></td><td>Thread inside same process</td><td>Multiple Node processes</td><td>Separate process</td></tr>
+          <tr><td><strong>Memory</strong></td><td>Separate isolate, can share memory deliberately</td><td>Separate memory</td><td>Separate memory</td></tr>
+          <tr><td><strong>Best for</strong></td><td>CPU-heavy JS</td><td>Scaling HTTP server across CPU cores</td><td>Running external commands or isolated jobs</td></tr>
+          <tr><td><strong>Communication</strong></td><td>MessagePort / shared buffers</td><td>IPC</td><td>IPC / stdio</td></tr>
+        </tbody></table></div>
+        <div class='cards three'>
+          <div class='card'><h3>Worker Threads</h3><p>Use when one Node process needs parallel CPU work without creating a full process for each job.</p></div>
+          <div class='card'><h3>Cluster</h3><p>Use to run multiple Node server processes, often one per CPU core, behind shared server port/load distribution.</p></div>
+          <div class='card'><h3>Child Process</h3><p>Use to run shell commands, other programs, or isolated Node scripts.</p></div>
+        </div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>Worker threads are best for CPU-heavy JavaScript inside the same process. Cluster creates multiple Node processes to scale a server across CPU cores. Child processes are more general and useful when we need to run external commands or isolate work at the process level.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='streams-backpressure' data-title='Streams &amp; Backpressure Streams are Node&#x27;s memory-safe way to process large data piece by piece instead of loading everything at once.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part H · Data Flow</div><h2>Streams &amp; Backpressure</h2><p class='lead'>Streams are Node&#x27;s memory-safe way to process large data piece by piece instead of loading everything at once.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>21</div><button class='ask-llm' data-ask-section='streams-backpressure'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>Stream types</div><pre class='tree'>Streams
+|
+├── Readable   -> data source
+├── Writable   -> data destination
+├── Duplex     -> both readable and writable
+└── Transform  -> modify data while passing through</pre></div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Pipeline example</span><button class='copy' data-copy>Copy</button></div><pre><code>const fs = require('node:fs');
+const { pipeline } = require('node:stream/promises');
+const zlib = require('node:zlib');
+
+async function compress() {
+  await pipeline(
+    fs.createReadStream('input.log'),
+    zlib.createGzip(),
+    fs.createWriteStream('input.log.gz')
+  );
+}</code></pre></div>
+        <div class='cards three'>
+          <div class='card'><h3>Backpressure</h3><p>When the consumer is slower than the producer, Node signals the producer to slow down.</p></div>
+          <div class='card'><h3><code>highWaterMark</code></h3><p>The buffer threshold that helps control how much data accumulates.</p></div>
+          <div class='card'><h3><code>drain</code></h3><p>Writable streams emit <code>drain</code> when it is safe to write more after pressure.</p></div>
+        </div>
+        <div class='memory'><strong>Remember:</strong> Backpressure protects memory.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='http-server-lifecycle' data-title='HTTP Server Request Lifecycle A web framework is just a layer above Node&#x27;s HTTP server, sockets and request/response streams.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part H · Server Internals</div><h2>HTTP Server Request Lifecycle</h2><p class='lead'>A web framework is just a layer above Node&#x27;s HTTP server, sockets and request/response streams.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>22</div><button class='ask-llm' data-ask-section='http-server-lifecycle'>Ask LLM</button></div>
+        </div>
+        
+        <div class='diagram'><div class='diagram-title'>HTTP request flow</div><pre class='tree'>Client TCP connection
+        |
+        v
+OS socket
+        |
+        v
+libuv poll phase
+        |
+        v
+Node net/http internals
+        |
+        v
+HTTP parser
+        |
+        v
+request event callback
+        |
+        v
+Framework middleware / route
+        |
+        v
+Response written to socket</pre></div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Raw Node HTTP server</span><button class='copy' data-copy>Copy</button></div><pre><code>const http = require('node:http');
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'content-type': 'text/plain' });
+  res.end('hello');
+});
+
+server.listen(3000);</code></pre></div>
+        <div class='interview'><h3>🎤 Interview short</h3><p>When a request arrives, the OS receives socket data, libuv notifies Node, Node parses the HTTP message and emits a request callback. The framework middleware chain then runs on the call stack. Any DB or network call leaves JavaScript asynchronously, then a promise or callback resumes the handler and writes the response back to the socket.</p></div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='performance-debugging' data-title='Performance Debugging &amp; Event Loop Lag In Node, one blocked event loop can make every user request slower.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part I · Production</div><h2>Performance Debugging &amp; Event Loop Lag</h2><p class='lead'>In Node, one blocked event loop can make every user request slower.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>23</div><button class='ask-llm' data-ask-section='performance-debugging'>Ask LLM</button></div>
+        </div>
+        
+        <div class='cards three'>
+          <div class='card'><h3>Blocking causes</h3><p>CPU loops, sync filesystem, huge JSON parse/stringify, catastrophic regex, large compression, heavy crypto.</p></div>
+          <div class='card'><h3>Event loop lag</h3><p>The delay between when a callback should run and when the event loop actually gets to run it.</p></div>
+          <div class='card'><h3>Fixes</h3><p>Chunk work, use streams, move CPU work to workers, avoid sync APIs, add caching carefully, optimize algorithms.</p></div>
+        </div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Simple event loop lag measurement</span><button class='copy' data-copy>Copy</button></div><pre><code>let last = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  const lag = now - last - 100;
+  last = now;
+  console.log('event loop lag:', lag, 'ms');
+}, 100);</code></pre></div>
+        <div class='diagram'><div class='diagram-title'>Debugging stack</div><pre class='tree'>Production issue
+|
+├── Check latency and event loop lag
+├── CPU profile / flamegraph
+├── Heap snapshot for memory leaks
+├── Logs and traces
+├── Thread pool pressure
+└── Slow external dependencies</pre></div>
+        <div class='memory'><strong>Remember:</strong> If the event loop is blocked, Node cannot accept/process callbacks quickly even if the server has network connections waiting.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='modules-packages' data-title='Modules, Package Resolution &amp; Loading Before Node runs your code, it must resolve, load, wrap/cache or evaluate modules.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part I · Runtime Loading</div><h2>Modules, Package Resolution &amp; Loading</h2><p class='lead'>Before Node runs your code, it must resolve, load, wrap/cache or evaluate modules.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>24</div><button class='ask-llm' data-ask-section='modules-packages'>Ask LLM</button></div>
+        </div>
+        
+        <div class='matrix'>
+          <div class='compare'><h3>CommonJS</h3><ul><li><code>require()</code></li><li><code>module.exports</code></li><li>Module wrapper function</li><li>Synchronous loading</li><li>Module cache</li></ul></div>
+          <div class='compare'><h3>ES Modules</h3><ul><li><code>import</code> / <code>export</code></li><li>Static module graph</li><li>Async-capable loading</li><li>Top-level await</li><li>Different ordering edge cases</li></ul></div>
+        </div>
+        <div class='diagram'><div class='diagram-title'>Resolution mental model</div><pre class='tree'>import / require specifier
+        |
+        v
+Is it core module?
+        |
+        +-- yes -> load Node builtin
+        |
+        +-- no -> resolve file / package
+                  |
+                  +-- package.json exports/main/type
+                  +-- node_modules lookup
+                  +-- extension rules
+        |
+        v
+Load, parse, execute, cache</pre></div>
+        <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>CommonJS wrapper idea</span><button class='copy' data-copy>Copy</button></div><pre><code>// Node conceptually wraps CommonJS modules like:
+(function (exports, require, module, __filename, __dirname) {
+  // your module code here
+});</code></pre></div>
+        <div class='memory'><strong>Remember:</strong> CommonJS is runtime/synchronous. ESM is graph-based and can be async because of top-level await.</div>
+        
+      </div>
+    </section>
+    
+    <section class='page section' id='interview-trainer' data-title='Interview Shorts, Output Practice &amp; Quiz This final chapter turns the architecture into interview answers and output prediction practice.'>
+      <div class='page-inner'>
+        <div class='page-head'>
+          <div><div class='chapter-kicker'>Part J · Trainer</div><h2>Interview Shorts, Output Practice &amp; Quiz</h2><p class='lead'>This final chapter turns the architecture into interview answers and output prediction practice.</p></div>
+          <div class='chapter-tools'><div class='chapter-no'>25</div><button class='ask-llm' data-ask-section='interview-trainer'>Ask LLM</button></div>
+        </div>
+        
+        <div class='interview'><h3>🎤 Explain Node.js architecture in 60 seconds</h3><p>Node.js is a JavaScript runtime built on V8. V8 executes JS, handles the call stack, heap, optimization and garbage collection. Node adds core APIs like fs, http, crypto, streams, timers and process. Many of those APIs go through native C++ bindings into libuv, OpenSSL, zlib or OS APIs. libuv provides the event loop, timers, poll phase, check phase and worker pool. JavaScript runs on the main thread by default, but Node can offload I/O to the OS, file/crypto/zlib/DNS work to the libuv thread pool, and CPU-heavy JavaScript to worker threads.</p></div>
+        <div class='split'>
+          <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Output practice 1</span><button class='copy' data-copy>Copy</button></div><pre><code>setTimeout(() => console.log('timeout'), 0);
+Promise.resolve().then(() => console.log('promise'));
+process.nextTick(() => console.log('nextTick'));
+console.log('sync');</code></pre></div>
+          <div class='card'><h3>Answer</h3><p><code>sync → nextTick → promise → timeout</code></p><p>Synchronous first, then Node nextTick queue, then promise microtasks, then event loop callbacks.</p></div>
+        </div>
+        <div class='split'>
+          <div class='codebox'><div class='code-top'><span class='traffic'><span></span><span></span><span></span></span><span class='code-title'>Output practice 2</span><button class='copy' data-copy>Copy</button></div><pre><code>const fs = require('node:fs');
+
+fs.readFile(__filename, () => {
+  setTimeout(() => console.log('timeout'), 0);
+  setImmediate(() => console.log('immediate'));
+});</code></pre></div>
+          <div class='card'><h3>Answer</h3><p>Commonly: <code>immediate → timeout</code></p><p>Inside an I/O callback, check phase comes before the next timers phase.</p></div>
+        </div>
+        <div class='quiz-panel' id='quiz-panel'>
+          <div class='quiz-meta'><span class='badge' id='scoreBadge'>Score: 0 / 18</span><span class='badge'>Node internals</span><span class='badge'>Senior interview</span></div>
+          <div class='q-card' data-answer='b'><div class='q-title'>1. Node.js is best described as:</div><div class='options'><div class='option' data-opt='a'>Only a JavaScript engine</div><div class='option' data-opt='b'>A JavaScript runtime built on V8 with Node APIs, native bindings and libuv</div><div class='option' data-opt='c'>A browser without DOM</div></div><div class='explanation'>Correct: B. V8 is only one part of Node.</div></div>
+          <div class='q-card' data-answer='c'><div class='q-title'>2. Which system provides Node's event loop implementation?</div><div class='options'><div class='option' data-opt='a'>React</div><div class='option' data-opt='b'>DOM</div><div class='option' data-opt='c'>libuv</div></div><div class='explanation'>Correct: C. libuv powers the event loop and async I/O abstraction.</div></div>
+          <div class='q-card' data-answer='a'><div class='q-title'>3. In CommonJS, what usually runs before promise microtasks?</div><div class='options'><div class='option' data-opt='a'>process.nextTick</div><div class='option' data-opt='b'>setTimeout</div><div class='option' data-opt='c'>setImmediate</div></div><div class='explanation'>Correct: A. Node drains nextTick before promise microtasks in typical CJS ordering.</div></div>
+          <div class='q-card' data-answer='b'><div class='q-title'>4. <code>setImmediate</code> callbacks run in which phase?</div><div class='options'><div class='option' data-opt='a'>timers</div><div class='option' data-opt='b'>check</div><div class='option' data-opt='c'>close callbacks</div></div><div class='explanation'>Correct: B. setImmediate is associated with the check phase.</div></div>
+          <div class='q-card' data-answer='a'><div class='q-title'>5. The poll phase mainly handles:</div><div class='options'><div class='option' data-opt='a'>I/O callbacks and waiting for I/O</div><div class='option' data-opt='b'>Only promise callbacks</div><div class='option' data-opt='c'>Only garbage collection</div></div><div class='explanation'>Correct: A. Poll is central for I/O.</div></div>
+          <div class='q-card' data-answer='c'><div class='q-title'>6. Which is commonly backed by the libuv thread pool?</div><div class='options'><div class='option' data-opt='a'>Normal JS arithmetic</div><div class='option' data-opt='b'>DOM rendering</div><div class='option' data-opt='c'>Many fs and crypto operations</div></div><div class='explanation'>Correct: C. Many fs/crypto/zlib/DNS operations can use the thread pool.</div></div>
+          <div class='q-card' data-answer='b'><div class='q-title'>7. Worker threads are best for:</div><div class='options'><div class='option' data-opt='a'>Making simple HTTP requests async</div><div class='option' data-opt='b'>CPU-heavy JavaScript work</div><div class='option' data-opt='c'>Replacing the event loop</div></div><div class='explanation'>Correct: B. Workers give parallel JS execution for CPU-heavy work.</div></div>
+          <div class='q-card' data-answer='a'><div class='q-title'>8. Backpressure protects:</div><div class='options'><div class='option' data-opt='a'>Memory</div><div class='option' data-opt='b'>CSS layout</div><div class='option' data-opt='c'>Module names</div></div><div class='explanation'>Correct: A. It prevents producers from overwhelming consumers.</div></div>
+          <div class='q-card' data-answer='c'><div class='q-title'>9. Event loop lag means:</div><div class='options'><div class='option' data-opt='a'>Network latency only</div><div class='option' data-opt='b'>Memory usage only</div><div class='option' data-opt='c'>Callbacks run later than expected because the loop is busy</div></div><div class='explanation'>Correct: C. Lag is delay in getting back to scheduled callbacks.</div></div>
+          <div class='q-card' data-answer='b'><div class='q-title'>10. Which statement is accurate?</div><div class='options'><div class='option' data-opt='a'>Node has a DOM rendering pipeline</div><div class='option' data-opt='b'>Node has no DOM; it exposes OS/server APIs</div><div class='option' data-opt='c'>Node cannot do network I/O</div></div><div class='explanation'>Correct: B. Node is server/runtime oriented, not browser UI oriented.</div></div>
+          <div class='q-card' data-answer='a'><div class='q-title'>11. <code>await</code> does what?</div><div class='options'><div class='option' data-opt='a'>Suspends the async function continuation</div><div class='option' data-opt='b'>Blocks the whole OS process</div><div class='option' data-opt='c'>Stops libuv</div></div><div class='explanation'>Correct: A. await does not block the entire Node thread.</div></div>
+          <div class='q-card' data-answer='c'><div class='q-title'>12. Cluster is mainly used for:</div><div class='options'><div class='option' data-opt='a'>DOM updates</div><div class='option' data-opt='b'>Promise scheduling</div><div class='option' data-opt='c'>Multiple Node processes for scaling</div></div><div class='explanation'>Correct: C. Cluster uses multiple processes.</div></div>
+          <div class='q-card' data-answer='b'><div class='q-title'>13. CommonJS modules are conceptually wrapped with:</div><div class='options'><div class='option' data-opt='a'>A CSS class</div><div class='option' data-opt='b'>A function receiving exports, require, module, filename, dirname</div><div class='option' data-opt='c'>An HTTP parser</div></div><div class='explanation'>Correct: B. This explains module scope and CommonJS globals.</div></div>
+          <div class='q-card' data-answer='a'><div class='q-title'>14. A memory leak means:</div><div class='options'><div class='option' data-opt='a'>Data remains reachable accidentally</div><div class='option' data-opt='b'>GC is disabled</div><div class='option' data-opt='c'>Node cannot allocate objects</div></div><div class='explanation'>Correct: A. Reachability is key.</div></div>
+          <div class='q-card' data-answer='c'><div class='q-title'>15. Which API can starve I/O if recursively abused?</div><div class='options'><div class='option' data-opt='a'>fs.createReadStream</div><div class='option' data-opt='b'>http.createServer</div><div class='option' data-opt='c'>process.nextTick</div></div><div class='explanation'>Correct: C. Recursive nextTick scheduling can prevent reaching I/O.</div></div>
+          <div class='q-card' data-answer='b'><div class='q-title'>16. The call stack is busy during:</div><div class='options'><div class='option' data-opt='a'>OS waiting only</div><div class='option' data-opt='b'>Synchronous JavaScript execution</div><div class='option' data-opt='c'>Pure network waiting</div></div><div class='explanation'>Correct: B. Synchronous JS occupies the call stack.</div></div>
+          <div class='q-card' data-answer='a'><div class='q-title'>17. Buffers represent:</div><div class='options'><div class='option' data-opt='a'>Fixed-length byte sequences</div><div class='option' data-opt='b'>CSS pixels</div><div class='option' data-opt='c'>HTML nodes</div></div><div class='explanation'>Correct: A. Buffers are for binary data.</div></div>
+          <div class='q-card' data-answer='c'><div class='q-title'>18. Best fix for CPU-heavy JS blocking requests?</div><div class='options'><div class='option' data-opt='a'>Add more promises only</div><div class='option' data-opt='b'>Use setTimeout everywhere</div><div class='option' data-opt='c'>Move heavy work to worker threads or external workers</div></div><div class='explanation'>Correct: C. CPU-heavy work needs real parallelism or separate workers.</div></div>
+          <button class='btn primary' id='resetQuiz' type='button'>Reset quiz</button>
+        </div>
+        
+      </div>
+    </section>
+    
+    
+<section class='page section' id='flashcards' data-title='Flashcards Node.js Internals Revision'>
+  <div class='page-inner'>
+    <div class='page-head'><div><div class='chapter-kicker'>Revision</div><h2>Flashcards</h2><p class='lead'>Click cards to flip. These are fast revision cards before interviews.</p></div><div class='chapter-tools'><div class='chapter-no'>FC</div><button class='ask-llm' data-ask-section='flashcards'>Ask LLM</button></div></div>
+    <div class='flashcards'>
+      <div class='flashcard'><div class='flash-inner'><div class='flash-front'><strong>What is Node.js?</strong><small>Click to reveal</small></div><div class='flash-back'><strong>Answer</strong><small>A JS runtime built on V8, Node core APIs, native bindings and libuv.</small></div></div></div>
+      <div class='flashcard'><div class='flash-inner'><div class='flash-front'><strong>What is libuv?</strong><small>Click to reveal</small></div><div class='flash-back'><strong>Answer</strong><small>The C library behind Node's event loop, async I/O abstraction and worker pool.</small></div></div></div>
+      <div class='flashcard'><div class='flash-inner'><div class='flash-front'><strong>nextTick vs Promise?</strong><small>Click to reveal</small></div><div class='flash-back'><strong>Answer</strong><small>In typical CJS order, nextTick queue drains before promise microtasks.</small></div></div></div>
+      <div class='flashcard'><div class='flash-inner'><div class='flash-front'><strong>Poll phase?</strong><small>Click to reveal</small></div><div class='flash-back'><strong>Answer</strong><small>Handles many I/O callbacks and may wait for new I/O.</small></div></div></div>
+      <div class='flashcard'><div class='flash-inner'><div class='flash-front'><strong>Thread pool?</strong><small>Click to reveal</small></div><div class='flash-back'><strong>Answer</strong><small>libuv workers used by many fs, crypto, zlib and DNS operations.</small></div></div></div>
+      <div class='flashcard'><div class='flash-inner'><div class='flash-front'><strong>Backpressure?</strong><small>Click to reveal</small></div><div class='flash-back'><strong>Answer</strong><small>A flow-control mechanism that stops fast producers from overwhelming slow consumers.</small></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class='page section' id='sources' data-title='Official Sources Node.js Documentation'>
+  <div class='page-inner'>
+    <div class='page-head'><div><div class='chapter-kicker'>References</div><h2>Official Sources Used</h2><p class='lead'>This book is based on stable runtime concepts and cross-checked against official Node.js documentation.</p></div><div class='chapter-tools'><div class='chapter-no'>SRC</div><button class='ask-llm' data-ask-section='sources'>Ask LLM</button></div></div>
+    <div class='cards two'>
+      <div class='card'><h3>Node.js Learn</h3><p><a href='https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick' target='_blank' rel='noopener'>Event loop, timers and nextTick</a></p></div>
+      <div class='card'><h3>Node.js Process API</h3><p><a href='https://nodejs.org/api/process.html' target='_blank' rel='noopener'>process.nextTick and queueMicrotask</a></p></div>
+      <div class='card'><h3>Node.js CLI</h3><p><a href='https://nodejs.org/api/cli.html' target='_blank' rel='noopener'>UV_THREADPOOL_SIZE and thread pool users</a></p></div>
+      <div class='card'><h3>Worker Threads</h3><p><a href='https://nodejs.org/api/worker_threads.html' target='_blank' rel='noopener'>worker_threads and shared memory</a></p></div>
+      <div class='card'><h3>File System</h3><p><a href='https://nodejs.org/api/fs.html' target='_blank' rel='noopener'>fs API forms and filesystem operations</a></p></div>
+      <div class='card'><h3>Buffer</h3><p><a href='https://nodejs.org/api/buffer.html' target='_blank' rel='noopener'>Buffer and binary data</a></p></div>
+    </div>
+  </div>
+</section>
+
+    <footer class='footer'><strong>Node.js Internals Architecture — V1</strong><br />Single-file HTML · inline CSS · inline JavaScript · responsive premium UI · Ask LLM buttons · quiz and flashcards.</footer>
+  </main>
+</div>
+<div class='floating-tools' aria-label='Floating tools'><button class='fab' id='topBtn' title='Back to top' type='button'>↑</button><button class='fab' id='printBtn' title='Print' type='button'>⎙</button></div>
+<div class='modal-backdrop' id='askModal' aria-hidden='true'><div class='modal' role='dialog' aria-modal='true' aria-label='Ask LLM prompt'><div class='modal-head'><div><h3>Ask LLM Prompt Ready</h3><p>The prompt has been copied. ChatGPT also opened in a new tab. If the prompt did not auto-fill, paste this.</p></div><button class='btn small' id='closeModal' type='button'>Close</button></div><textarea id='promptBox'></textarea><div class='modal-actions'><button class='btn primary' id='copyPrompt' type='button'>Copy prompt</button><button class='btn' id='openChat' type='button'>Open ChatGPT</button></div></div></div>
+<script>
+(function(){
+  const body=document.body, sidebar=document.getElementById('sidebar'), menuBtn=document.getElementById('menuBtn'), themeBtn=document.getElementById('themeBtn'), expandBtn=document.getElementById('expandBtn'), progress=document.getElementById('progress'), tocLinks=Array.from(document.querySelectorAll('.toc a')), sections=Array.from(document.querySelectorAll('.section')), search=document.getElementById('search'), scoreBadge=document.getElementById('scoreBadge'), storageKey='nodeInternalsBookTheme';
+  function setTheme(mode){body.classList.toggle('light',mode==='light');themeBtn.textContent=mode==='light'?'☀️ Theme':'🌙 Theme';localStorage.setItem(storageKey,mode)}
+  setTheme(localStorage.getItem(storageKey)||'dark');
+  themeBtn.addEventListener('click',()=>setTheme(body.classList.contains('light')?'dark':'light'));
+  menuBtn&&menuBtn.addEventListener('click',()=>sidebar.classList.toggle('open'));
+  tocLinks.forEach(a=>a.addEventListener('click',()=>sidebar.classList.remove('open')));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){sidebar.classList.remove('open');closeAskModal();}});
+  function onScroll(){const st=window.scrollY||document.documentElement.scrollTop;const dh=document.documentElement.scrollHeight-window.innerHeight;progress.style.width=Math.max(0,Math.min(100,(st/dh)*100))+'%';let current=sections[0]?.id;for(const s of sections){if(s.getBoundingClientRect().top<=120)current=s.id}tocLinks.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+current));}
+  document.addEventListener('scroll',onScroll,{passive:true});onScroll();
+  document.querySelectorAll('[data-copy]').forEach(btn=>btn.addEventListener('click',async()=>{const code=btn.closest('.codebox').querySelector('code').innerText;try{await navigator.clipboard.writeText(code);const old=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=old,1100)}catch(e){btn.textContent='Select text';setTimeout(()=>btn.textContent='Copy',1100)}}));
+  expandBtn&&expandBtn.addEventListener('click',()=>{const details=Array.from(document.querySelectorAll('details'));const shouldOpen=details.some(d=>!d.open);details.forEach(d=>d.open=shouldOpen);expandBtn.textContent=shouldOpen?'Collapse all':'Expand all'});
+  function normalize(s){return s.toLowerCase().replace(/\s+/g,' ').trim()}
+  search.addEventListener('input',()=>{const q=normalize(search.value);sections.forEach(sec=>{const title=normalize(sec.dataset.title||sec.textContent);const match=!q||title.includes(q);sec.classList.toggle('hidden-by-search',!match)});tocLinks.forEach(link=>{const target=document.querySelector(link.getAttribute('href'));link.style.display=target&&target.classList.contains('hidden-by-search')?'none':'flex'})});
+  let answered=new Map();function updateScore(){if(!scoreBadge)return;const total=document.querySelectorAll('.q-card').length;let score=0;answered.forEach(v=>{if(v)score++});scoreBadge.textContent='Score: '+score+' / '+total}
+  document.querySelectorAll('.q-card').forEach((card,index)=>{card.querySelectorAll('.option').forEach(opt=>opt.addEventListener('click',()=>{if(card.classList.contains('answered'))return;const answer=card.dataset.answer,chosen=opt.dataset.opt;card.classList.add('answered');card.querySelectorAll('.option').forEach(o=>{if(o.dataset.opt===answer)o.classList.add('correct')});if(chosen!==answer)opt.classList.add('wrong');answered.set(index,chosen===answer);updateScore()}))});
+  const reset=document.getElementById('resetQuiz'); if(reset) reset.addEventListener('click',()=>{answered=new Map();document.querySelectorAll('.q-card').forEach(card=>{card.classList.remove('answered');card.querySelectorAll('.option').forEach(o=>o.classList.remove('correct','wrong'))});updateScore()}); updateScore();
+  document.querySelectorAll('.flashcard').forEach(card=>card.addEventListener('click',()=>card.classList.toggle('flipped')));
+  document.getElementById('topBtn').addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));document.getElementById('printBtn').addEventListener('click',()=>window.print());
+
+  const modal=document.getElementById('askModal'), promptBox=document.getElementById('promptBox'), copyPrompt=document.getElementById('copyPrompt'), openChat=document.getElementById('openChat'), closeModal=document.getElementById('closeModal');
+  let lastPrompt='';
+  function cleanText(t){return t.replace(/\s+/g,' ').replace(/Copy/g,'').trim()}
+  function buildPrompt(section){
+    const title=section.querySelector('h2')?.innerText||'Node.js Internals Chapter';
+    const no=section.querySelector('.chapter-no')?.innerText||'';
+    const context=cleanText(section.innerText).slice(0,6000);
+    return `I am studying Node.js internals for a senior backend / full-stack interview.\n\nChapter ${no}: ${title}\n\nHere is the chapter context:\n\n${context}\n\nPlease help me with this chapter in this exact format:\n1. Explain the chapter in very simple words.\n2. Explain the deeper internal architecture.\n3. Give me a memory shortcut.\n4. Give me a senior interview answer in 60 seconds.\n5. Ask me 5 output/concept questions from this chapter.\n6. Give real production examples and common mistakes.\n\nDo not skip details. Make it easy to remember.`;
+  }
+  async function copyText(text){try{await navigator.clipboard.writeText(text);return true}catch(e){return false}}
+  function openAskModal(prompt){lastPrompt=prompt;promptBox.value=prompt;modal.classList.add('open')}
+  function closeAskModal(){modal.classList.remove('open')}
+  document.querySelectorAll('.ask-llm').forEach(btn=>btn.addEventListener('click',async()=>{const id=btn.dataset.askSection;const section=document.getElementById(id);if(!section)return;const prompt=buildPrompt(section);await copyText(prompt);openAskModal(prompt);const url='https://chatgpt.com/?q='+encodeURIComponent(prompt);window.open(url,'_blank','noopener,noreferrer');}));
+  copyPrompt.addEventListener('click',async()=>{await copyText(promptBox.value);copyPrompt.textContent='Copied';setTimeout(()=>copyPrompt.textContent='Copy prompt',1000)});
+  openChat.addEventListener('click',()=>window.open('https://chatgpt.com/?q='+encodeURIComponent(promptBox.value),'_blank','noopener,noreferrer'));
+  closeModal.addEventListener('click',closeAskModal); modal.addEventListener('click',e=>{if(e.target===modal)closeAskModal()});
+  window.nodeInternalsDemo=function(){console.log('sync');setTimeout(()=>console.log('timeout'),0);setImmediate(()=>console.log('immediate'));Promise.resolve().then(()=>console.log('promise'));process?.nextTick?.(()=>console.log('nextTick'));return 'In Node CJS: sync, nextTick, promise, then timeout/immediate order can depend outside I/O.'};
+})();
+</script>
+</body>
+</html>
