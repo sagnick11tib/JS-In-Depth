@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="A complete senior-level browser async JavaScript internals book, interview trainer, quiz, diagrams, and execution examples in one single HTML file." />
-  <title>Browser Async JavaScript Internals — Senior Interview Book</title>
+  <title>Browser Async JavaScript Internals — Senior Interview Book — Ask LLM Edition</title>
   <style>
     :root{
       --bg:#070b16;
@@ -64,6 +64,7 @@
         linear-gradient(180deg,var(--bg),#040711 76%);
       overflow-x:hidden;
     }
+    body.modal-open{overflow:hidden}
     body.light{
       background:
         radial-gradient(circle at 8% -8%, rgba(139,92,246,.18), transparent 31%),
@@ -145,6 +146,25 @@
     .page-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.3rem}
     .chapter-kicker{display:inline-flex;align-items:center;gap:.55rem;color:var(--brand2);font-weight:950;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:.8rem}
     .chapter-no{width:46px;height:46px;border-radius:17px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;color:white;font-weight:950;box-shadow:0 16px 35px rgba(139,92,246,.24);flex:0 0 auto}
+    .chapter-actions{display:flex;align-items:center;justify-content:flex-end;gap:.62rem;flex:0 0 auto;flex-wrap:wrap}
+    .chapter-actions .chapter-no{margin-bottom:0}
+    .ask-llm-btn{border:1px solid rgba(139,92,246,.38);background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(6,182,212,.13));color:var(--text);border-radius:999px;padding:.7rem .88rem;font-weight:950;font-size:.78rem;letter-spacing:-.01em;cursor:pointer;display:inline-flex;align-items:center;gap:.45rem;box-shadow:0 14px 35px rgba(6,182,212,.10);transition:.22s ease;white-space:nowrap}
+    .ask-llm-btn:hover{transform:translateY(-2px);background:linear-gradient(135deg,rgba(139,92,246,.28),rgba(6,182,212,.20));border-color:rgba(6,182,212,.48)}
+    .ask-llm-btn svg{width:16px;height:16px;flex:0 0 auto}
+    .llm-modal{position:fixed;inset:0;z-index:2200;display:none;place-items:center;padding:1rem;background:rgba(3,7,18,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .llm-modal.open{display:grid}
+    .llm-dialog{width:min(920px,96vw);max-height:88vh;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:28px;background:linear-gradient(180deg,var(--paper),var(--paper2));box-shadow:var(--shadow);overflow:hidden}
+    body.light .llm-dialog{background:linear-gradient(180deg,#fff,#f8faff)}
+    .llm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:1.1rem 1.2rem;border-bottom:1px solid var(--line)}
+    .llm-head h3{margin:0;font-size:1.2rem}.llm-head p{margin:.25rem 0 0;font-size:.9rem;color:var(--muted);line-height:1.5}
+    .llm-close{width:40px;height:40px;border-radius:14px;border:1px solid var(--line);background:var(--glass);color:var(--text);cursor:pointer;font-weight:950;font-size:1.05rem;flex:0 0 auto}
+    .llm-body{padding:1rem 1.2rem;overflow:auto}.llm-body label{display:block;font-size:.82rem;color:var(--faint);font-weight:950;text-transform:uppercase;letter-spacing:.13em;margin-bottom:.55rem}
+    .llm-prompt{width:100%;min-height:320px;resize:vertical;border:1px solid var(--line);border-radius:20px;background:rgba(0,0,0,.18);color:var(--text);padding:1rem;font-family:var(--mono);font-size:.85rem;line-height:1.62;outline:none}
+    body.light .llm-prompt{background:#fff;color:#111827}
+    .llm-actions{display:flex;flex-wrap:wrap;gap:.65rem;padding:1rem 1.2rem;border-top:1px solid var(--line);background:var(--glass)}
+    .toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;z-index:2300;border:1px solid var(--line);background:rgba(17,26,49,.92);color:var(--text);padding:.8rem 1rem;border-radius:999px;font-weight:900;box-shadow:var(--shadow2);transition:.22s ease;text-align:center;max-width:min(92vw,560px)}
+    body.light .toast{background:rgba(255,255,255,.95)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
     .lead{font-size:1.14rem;color:var(--muted);max-width:860px;line-height:1.75}
     .divider{height:1px;background:var(--line);margin:1.55rem 0}
     .pill-row{display:flex;flex-wrap:wrap;gap:.5rem;margin:.85rem 0 1.2rem}.pill{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:.45rem .7rem;font-size:.78rem;color:var(--muted);font-weight:850}
@@ -177,7 +197,7 @@
     .floating-tools{position:fixed;right:1rem;bottom:1rem;display:grid;gap:.55rem;z-index:999}.fab{width:48px;height:48px;border-radius:18px;border:1px solid var(--line);background:rgba(17,26,49,.82);backdrop-filter:blur(20px);color:var(--text);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow2)}body.light .fab{background:rgba(255,255,255,.82)}.fab:hover{transform:translateY(-2px)}
     .hidden-by-search{display:none!important}.mark-hit{background:rgba(251,191,36,.28);border-radius:5px;padding:0 .1rem}
     @media (max-width:1000px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;z-index:1100;top:0;left:0;height:100vh;width:min(88vw,340px);border-radius:0 26px 26px 0;transform:translateX(-105%);transition:.25s ease;background:rgba(7,11,22,.94);backdrop-filter:blur(20px)}body.light .sidebar{background:rgba(255,255,255,.96)}.sidebar.open{transform:translateX(0)}.hamb{display:inline-flex}.hero-grid{grid-template-columns:repeat(2,1fr)}.cards,.cards.two,.cards.four,.split,.matrix,.flashcards{grid-template-columns:1fr}.top-actions .hide-sm{display:none}.brand-title span:first-child{max-width:230px}}
-    @media (max-width:650px){.topbar-inner{padding:.75rem}.layout{padding:.75rem}.hero{border-radius:26px;min-height:auto;padding:1.5rem}.page{border-radius:24px}.page-inner{padding:1.15rem}.hero-grid{grid-template-columns:1fr}.metric{padding:.85rem}.btn{padding:.68rem .78rem;font-size:.82rem}.top-actions{gap:.38rem}.brand-title small{display:none}.logo{width:38px;height:38px}.page-head{display:block}.chapter-no{margin-bottom:.8rem}pre{font-size:.78rem}.flow{min-width:600px}.cards{gap:.75rem}.callout{display:block}.callout .mark{margin-bottom:.7rem}.floating-tools{right:.7rem;bottom:.7rem}.fab{width:43px;height:43px;border-radius:15px}}
+    @media (max-width:650px){.chapter-actions{justify-content:flex-start;margin-bottom:.8rem}.topbar-inner{padding:.75rem}.layout{padding:.75rem}.hero{border-radius:26px;min-height:auto;padding:1.5rem}.page{border-radius:24px}.page-inner{padding:1.15rem}.hero-grid{grid-template-columns:1fr}.metric{padding:.85rem}.btn{padding:.68rem .78rem;font-size:.82rem}.top-actions{gap:.38rem}.brand-title small{display:none}.logo{width:38px;height:38px}.page-head{display:block}.chapter-no{margin-bottom:.8rem}pre{font-size:.78rem}.flow{min-width:600px}.cards{gap:.75rem}.callout{display:block}.callout .mark{margin-bottom:.7rem}.floating-tools{right:.7rem;bottom:.7rem}.fab{width:43px;height:43px;border-radius:15px}}
     @media print{
       .topbar,.sidebar,.floating-tools,.hero-actions,.copy,.quiz-panel .btn{display:none!important}
       body{background:white!important;color:#111!important}.layout{display:block;max-width:none;padding:0}.hero,.page,.footer{box-shadow:none!important;border:1px solid #ddd!important;break-inside:avoid;background:white!important}.page{page-break-before:auto}.page-inner,.hero{padding:28px!important}.gradient-text{color:#111!important;background:none!important;-webkit-text-fill-color:#111}.tree,pre{white-space:pre-wrap;color:#111!important}.codebox{background:#fff!important}.code-top{background:#f4f4f4!important;color:#111!important}p,td,li,small{color:#333!important}.btn{display:none!important}
@@ -260,7 +280,7 @@
 
     <section class="page section" id="contents" data-title="Contents Page Chapters Book Structure">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter Map</div><h2>Contents Page</h2><p class="lead">This is the learning order for understanding browser async JavaScript at senior frontend, browser runtime, and JS engine interview level.</p></div><div class="chapter-no">01</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter Map</div><h2>Contents Page</h2><p class="lead">This is the learning order for understanding browser async JavaScript at senior frontend, browser runtime, and JS engine interview level.</p></div><div class="chapter-actions"><div class="chapter-no">01</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 01"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="cards two">
           <div class="card"><span class="icon">🧠</span><h3>Part A — Foundation</h3><ul><li>Core mental model</li><li>JavaScript engine</li><li>Browser runtime</li><li>Processes and threads</li></ul></div>
           <div class="card"><span class="icon">⚙️</span><h3>Part B — Async System</h3><ul><li>Web APIs catalogue</li><li>Task, microtask, animation and idle queues</li><li>Event loop behaviour</li><li>Rendering pipeline</li></ul></div>
@@ -287,7 +307,7 @@
 
     <section class="page section" id="mental-model" data-title="Core Mental Model JavaScript Single Thread Browser Multi Thread Async Architecture">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 1</div><h2>Core Mental Model</h2><p class="lead">The cleanest senior-level explanation starts with one distinction: JavaScript execution is single-threaded, but the browser platform around it is multi-threaded and multi-process.</p></div><div class="chapter-no">02</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 1</div><h2>Core Mental Model</h2><p class="lead">The cleanest senior-level explanation starts with one distinction: JavaScript execution is single-threaded, but the browser platform around it is multi-threaded and multi-process.</p></div><div class="chapter-actions"><div class="chapter-no">02</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 02"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="callout good"><div class="mark">✅</div><p><strong>One-line model:</strong> JavaScript runs on the call stack; async work is delegated to browser capabilities; completed callbacks are queued; the event loop schedules them back onto the call stack when it is safe.</p></div>
         <div class="diagram">
           <div class="diagram-title">High-level browser async flow</div>
@@ -312,7 +332,7 @@
 
     <section class="page section" id="engine" data-title="JavaScript Engine Call Stack Heap Execution Context Lexical Environment Garbage Collector Promise Job Handling">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 2</div><h2>JavaScript Engine</h2><p class="lead">The JavaScript engine is responsible for parsing, compiling, optimizing, executing JavaScript, managing memory, and running promise jobs.</p></div><div class="chapter-no">03</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 2</div><h2>JavaScript Engine</h2><p class="lead">The JavaScript engine is responsible for parsing, compiling, optimizing, executing JavaScript, managing memory, and running promise jobs.</p></div><div class="chapter-actions"><div class="chapter-no">03</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 03"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="diagram"><div class="diagram-title">JavaScript engine architecture</div><pre class="tree">JavaScript Engine
 |
 ├── Parser / Compiler / Optimizer
@@ -353,7 +373,7 @@ a();</code></pre></div>
 
     <section class="page section" id="runtime" data-title="Browser Runtime Web APIs Event Loop Task Queues Rendering Pipeline Browser Threads">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 3</div><h2>Browser Runtime</h2><p class="lead">The browser runtime is the environment around the JS engine. It provides Web APIs, queues, event loop scheduling, DOM access, rendering, networking, storage and browser-specific capabilities.</p></div><div class="chapter-no">04</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 3</div><h2>Browser Runtime</h2><p class="lead">The browser runtime is the environment around the JS engine. It provides Web APIs, queues, event loop scheduling, DOM access, rendering, networking, storage and browser-specific capabilities.</p></div><div class="chapter-actions"><div class="chapter-no">04</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 04"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="diagram"><div class="diagram-title">Browser runtime layers</div><pre class="tree">Browser Runtime
 |
 ├── JavaScript Engine
@@ -390,7 +410,7 @@ a();</code></pre></div>
 
     <section class="page section" id="threads" data-title="Browser Multi Threaded Process Renderer Network GPU Compositor Raster Worker Main Thread">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 4</div><h2>Browser Processes & Threads</h2><p class="lead">A modern browser separates work across processes and threads for security, responsiveness and performance. The exact implementation differs by browser, but this model is very useful for interviews.</p></div><div class="chapter-no">05</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 4</div><h2>Browser Processes & Threads</h2><p class="lead">A modern browser separates work across processes and threads for security, responsiveness and performance. The exact implementation differs by browser, but this model is very useful for interviews.</p></div><div class="chapter-actions"><div class="chapter-no">05</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 05"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="diagram"><div class="diagram-title">Simplified browser process model</div><pre class="tree">Browser Process
 |
 ├── Renderer Process
@@ -435,7 +455,7 @@ console.log("after fetch");</code></pre></div>
 
     <section class="page section" id="webapis" data-title="Complete Web APIs Timers Promise Network DOM Events Observer Rendering Storage Workers Communication File Device Scheduling">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 5</div><h2>Complete Web APIs Catalogue</h2><p class="lead">These APIs are the main browser-provided async and platform capabilities a senior frontend engineer should recognize.</p></div><div class="chapter-no">06</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 5</div><h2>Complete Web APIs Catalogue</h2><p class="lead">These APIs are the main browser-provided async and platform capabilities a senior frontend engineer should recognize.</p></div><div class="chapter-actions"><div class="chapter-no">06</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 06"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="cards three">
           <div class="card"><h3>Timer APIs</h3><ul><li><code>setTimeout()</code></li><li><code>setInterval()</code></li><li><code>clearTimeout()</code></li><li><code>clearInterval()</code></li></ul></div>
           <div class="card"><h3>Promise / Microtask APIs</h3><ul><li><code>Promise</code></li><li><code>queueMicrotask()</code></li><li><code>async / await</code></li><li><code>MutationObserver</code></li></ul></div>
@@ -456,7 +476,7 @@ console.log("after fetch");</code></pre></div>
 
     <section class="page section" id="queues" data-title="All Browser Queues Task Queue Microtask Queue Animation Queue Idle Queue Event Loop">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 6</div><h2>All Browser Queues & Event Loop</h2><p class="lead">For senior interviews, avoid the oversimplified “callback queue + microtask queue” explanation. The browser event loop coordinates multiple sources of work.</p></div><div class="chapter-no">07</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 6</div><h2>All Browser Queues & Event Loop</h2><p class="lead">For senior interviews, avoid the oversimplified “callback queue + microtask queue” explanation. The browser event loop coordinates multiple sources of work.</p></div><div class="chapter-actions"><div class="chapter-no">07</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 07"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="diagram"><div class="diagram-title">Event loop queues</div><pre class="tree">Event Loop System
 |
 ├── Task Queue / Macrotask Queue
@@ -492,7 +512,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="rendering" data-title="Rendering Pipeline Event Loop Style Layout Paint Composite requestAnimationFrame">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 7</div><h2>Rendering Pipeline</h2><p class="lead">The event loop is connected to rendering. This is the part many intermediate explanations miss.</p></div><div class="chapter-no">08</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 7</div><h2>Rendering Pipeline</h2><p class="lead">The event loop is connected to rendering. This is the part many intermediate explanations miss.</p></div><div class="chapter-actions"><div class="chapter-no">08</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 08"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="diagram"><div class="diagram-title">One event loop turn with rendering</div><div class="flow vertical"><div class="flow-node">1. Run oldest task<small>Example: timer callback or click event</small></div><div class="arrow">→</div><div class="flow-node">2. Drain microtask queue<small>Promises, await continuations, queueMicrotask</small></div><div class="arrow">→</div><div class="flow-node">3. Run requestAnimationFrame callbacks<small>Before next paint</small></div><div class="arrow">→</div><div class="flow-node">4. Style calculation<small>Compute final CSS</small></div><div class="arrow">→</div><div class="flow-node">5. Layout<small>Calculate geometry</small></div><div class="arrow">→</div><div class="flow-node">6. Paint<small>Draw pixels/layers</small></div><div class="arrow">→</div><div class="flow-node">7. Composite<small>Combine layers and present</small></div><div class="arrow">→</div><div class="flow-node">8. Next task<small>Loop continues</small></div></div></div>
         <div class="cards three"><div class="card"><h3>Style</h3><p>Browser calculates which CSS rules apply and computes final values.</p></div><div class="card"><h3>Layout</h3><p>Browser calculates element sizes and positions. Layout can be expensive if repeatedly forced.</p></div><div class="card"><h3>Paint & Composite</h3><p>Browser paints visual content and composites layers to the screen, often assisted by compositor/GPU infrastructure.</p></div></div>
         <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Rendering order example</span><button class="copy" data-copy>Copy</button></div><pre><code>setTimeout(() => {
@@ -515,7 +535,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="asyncawait" data-title="Async Await Internals Promise Microtask Function Suspended Await Continuation">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 8</div><h2>Async/Await Internals</h2><p class="lead"><code>async/await</code> is syntax over promises. It makes asynchronous code look synchronous, but it does not block the main thread.</p></div><div class="chapter-no">09</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 8</div><h2>Async/Await Internals</h2><p class="lead"><code>async/await</code> is syntax over promises. It makes asynchronous code look synchronous, but it does not block the main thread.</p></div><div class="chapter-actions"><div class="chapter-no">09</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 09"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Async function example</span><button class="copy" data-copy>Copy</button></div><pre><code>async function test() {
   console.log(1);
 
@@ -540,7 +560,7 @@ console.log(3);</code></pre></div>
 
     <section class="page section" id="examples" data-title="Output Prediction JavaScript Event Loop Examples Promises Timers Async Await requestAnimationFrame">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 9</div><h2>Output Prediction Practice</h2><p class="lead">Interviewers often test async knowledge by asking for output order. Use the stack → microtask → render opportunity → task model.</p></div><div class="chapter-no">10</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 9</div><h2>Output Prediction Practice</h2><p class="lead">Interviewers often test async knowledge by asking for output order. Use the stack → microtask → render opportunity → task model.</p></div><div class="chapter-actions"><div class="chapter-no">10</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 10"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="split">
           <div>
             <div class="codebox"><div class="code-top"><span class="traffic"><span></span><span></span><span></span></span><span class="code-title">Example 1</span><button class="copy" data-copy>Copy</button></div><pre><code>console.log("A");
@@ -600,7 +620,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="misconceptions" data-title="Common Misconceptions Event Loop Does Not Execute Callback Async Await Blocks JavaScript Single Threaded Browser Single Threaded">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 10</div><h2>Common Misconceptions</h2><p class="lead">These are the mistakes that separate intermediate explanations from senior-level browser runtime explanations.</p></div><div class="chapter-no">11</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 10</div><h2>Common Misconceptions</h2><p class="lead">These are the mistakes that separate intermediate explanations from senior-level browser runtime explanations.</p></div><div class="chapter-actions"><div class="chapter-no">11</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 11"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="cards two">
           <div class="card"><h3>❌ “The event loop executes callbacks.”</h3><p><strong>Correct:</strong> The event loop schedules work. The JS engine executes the callback on the call stack.</p></div>
           <div class="card"><h3>❌ “JavaScript async means multi-threaded JS.”</h3><p><strong>Correct:</strong> Async means non-blocking scheduling. Normal JS still runs on one call stack unless you explicitly use workers.</p></div>
@@ -615,7 +635,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="browser-node" data-title="Browser vs Node Event Loop Web APIs DOM Rendering libuv Thread Pool nextTick">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 11</div><h2>Browser vs Node.js</h2><p class="lead">Both use JavaScript, but their host environments and event loop details differ. Do not explain Node.js using browser rendering concepts.</p></div><div class="chapter-no">12</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 11</div><h2>Browser vs Node.js</h2><p class="lead">Both use JavaScript, but their host environments and event loop details differ. Do not explain Node.js using browser rendering concepts.</p></div><div class="chapter-actions"><div class="chapter-no">12</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 12"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="matrix">
           <div class="compare"><h3>Browser</h3><ul><li>Web APIs</li><li>DOM and CSSOM</li><li>Rendering pipeline</li><li>Task and microtask queues</li><li><code>requestAnimationFrame</code></li><li>Workers and service workers</li></ul></div>
           <div class="compare"><h3>Node.js</h3><ul><li>libuv event loop</li><li>Thread pool for some async work</li><li>Event loop phases</li><li><code>process.nextTick</code> queue</li><li>Timers, poll, check phases</li><li>No DOM rendering pipeline</li></ul></div>
@@ -627,7 +647,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="architecture" data-title="Final Senior Browser Async JavaScript Complete Architecture Diagram">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Chapter 12</div><h2>Final Senior Browser Async JS Architecture</h2><p class="lead">This is the complete map you should carry into senior frontend interviews.</p></div><div class="chapter-no">13</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Chapter 12</div><h2>Final Senior Browser Async JS Architecture</h2><p class="lead">This is the complete map you should carry into senior frontend interviews.</p></div><div class="chapter-actions"><div class="chapter-no">13</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 13"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="diagram"><div class="diagram-title">Complete architecture</div><pre class="tree">Browser
 |
 ├── JavaScript Engine
@@ -681,7 +701,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="quiz" data-title="Quiz Mode Interactive Interview Questions JavaScript Async Event Loop">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Interactive Trainer</div><h2>Quiz Mode</h2><p class="lead">Click an option to check your answer. The explanation appears instantly.</p></div><div class="chapter-no">14</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Interactive Trainer</div><h2>Quiz Mode</h2><p class="lead">Click an option to check your answer. The explanation appears instantly.</p></div><div class="chapter-actions"><div class="chapter-no">14</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 14"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="quiz-panel">
           <div class="quiz-meta"><span class="badge" id="scoreBadge">Score: 0 / 12</span><span class="badge">Senior frontend prep</span><span class="badge">Browser runtime</span></div>
           <div class="q-card" data-answer="b"><div class="q-title">1. Which statement is most accurate?</div><div class="options"><div class="option" data-opt="a">The browser is single-threaded.</div><div class="option" data-opt="b">JavaScript execution is usually single-threaded, but the browser is multi-threaded.</div><div class="option" data-opt="c">Promises run on a separate JavaScript thread.</div></div><div class="explanation">Correct answer: B. Normal JS execution uses one call stack, but the browser has network, compositor, worker, raster and other threads/processes.</div></div>
@@ -703,7 +723,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="flashcards" data-title="Flashcards Interview Revision Event Loop Async JavaScript">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Revision</div><h2>Flashcards</h2><p class="lead">Click each card to flip it. Use these for fast revision before interviews.</p></div><div class="chapter-no">15</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Revision</div><h2>Flashcards</h2><p class="lead">Click each card to flip it. Use these for fast revision before interviews.</p></div><div class="chapter-actions"><div class="chapter-no">15</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 15"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <div class="flashcards">
           <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>What is the call stack?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small>The structure where the JS engine tracks active function calls and executes synchronous JavaScript.</small></div></div></div>
           <div class="flashcard"><div class="flash-inner"><div class="flash-front"><strong>What is a microtask?</strong><small>Click to reveal</small></div><div class="flash-back"><strong>Answer</strong><small>High-priority queued work such as promise reactions, await continuations and queueMicrotask callbacks.</small></div></div></div>
@@ -717,7 +737,7 @@ console.log("sync");</code></pre></div>
 
     <section class="page section" id="interview" data-title="Interview Answers Senior Frontend Browser Runtime JavaScript Async">
       <div class="page-inner">
-        <div class="page-head"><div><div class="chapter-kicker">Final Preparation</div><h2>Senior Interview Answers</h2><p class="lead">Use these as polished spoken answers. They are intentionally concise but complete.</p></div><div class="chapter-no">16</div></div>
+        <div class="page-head"><div><div class="chapter-kicker">Final Preparation</div><h2>Senior Interview Answers</h2><p class="lead">Use these as polished spoken answers. They are intentionally concise but complete.</p></div><div class="chapter-actions"><div class="chapter-no">16</div><button class="ask-llm-btn" type="button" data-ask-llm aria-label="Ask LLM about chapter 16"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg><span>Ask LLM</span></button></div></div>
         <details open><summary>Explain browser async JavaScript in 60 seconds</summary><div class="details-body"><p>JavaScript runs on a single call stack inside the JavaScript engine. The browser around it is multi-threaded and provides Web APIs like timers, fetch, DOM events, workers and rendering APIs. When JS starts async work, the work is delegated to the browser. When it completes, the browser schedules a callback or continuation into a queue. Promise callbacks and await continuations go to the microtask queue. Timers and events usually enter task queues. The event loop coordinates when queued work can go back to the call stack. After each task, microtasks are drained. Then the browser may run animation frame callbacks and rendering steps like style, layout, paint and composite.</p></div></details>
         <details><summary>Explain fetch internals</summary><div class="details-body"><p><code>fetch</code> starts a network request through the browser's networking layer and returns a promise immediately. JavaScript does not wait for the HTTP request on the call stack. When the network response is ready, the promise settles, and the related <code>.then</code> or <code>await</code> continuation is scheduled as a microtask. The JS engine later runs that continuation when the stack is empty and after the current task finishes.</p></div></details>
         <details><summary>Explain microtask vs task</summary><div class="details-body"><p>A task is a larger unit of scheduled work such as a timer callback, user event, or message event. A microtask is higher-priority follow-up work such as a promise reaction, <code>await</code> continuation or <code>queueMicrotask</code>. After the current script or task finishes, the browser drains all microtasks before moving to the next task.</p></div></details>
@@ -729,11 +749,33 @@ console.log("sync");</code></pre></div>
     </section>
 
     <footer class="footer">
-      <strong>Browser Async JavaScript Internals — V2</strong><br />
+      <strong>Browser Async JavaScript Internals — V3 Ask LLM</strong><br />
       Single-file HTML · inline CSS · inline JavaScript · responsive premium UI · quiz and interview trainer.
     </footer>
   </main>
 </div>
+
+<div class="llm-modal" id="llmModal" role="dialog" aria-modal="true" aria-labelledby="llmTitle">
+  <div class="llm-dialog">
+    <div class="llm-head">
+      <div>
+        <h3 id="llmTitle">Ask LLM about this chapter</h3>
+        <p>The prompt is generated from this chapter. It is copied automatically and ChatGPT opens with it.</p>
+      </div>
+      <button class="llm-close" id="llmClose" type="button" aria-label="Close prompt modal">×</button>
+    </div>
+    <div class="llm-body">
+      <label for="llmPrompt">Ready-made chapter prompt</label>
+      <textarea class="llm-prompt" id="llmPrompt" spellcheck="false"></textarea>
+    </div>
+    <div class="llm-actions">
+      <button class="btn primary" id="copyLlmPrompt" type="button">Copy prompt</button>
+      <button class="btn" id="openChatGPT" type="button">Open ChatGPT</button>
+      <button class="btn" id="closeLlmPrompt" type="button">Close</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="floating-tools" aria-label="Floating tools">
   <button class="fab" id="topBtn" title="Back to top" type="button">↑</button>
   <button class="fab" id="printBtn" title="Print" type="button">⎙</button>
@@ -752,6 +794,98 @@ console.log("sync");</code></pre></div>
     const scoreBadge = document.getElementById('scoreBadge');
     const storageKey = 'browserAsyncBookTheme';
 
+    const llmModal = document.getElementById('llmModal');
+    const llmTitle = document.getElementById('llmTitle');
+    const llmPrompt = document.getElementById('llmPrompt');
+    const llmClose = document.getElementById('llmClose');
+    const copyLlmPrompt = document.getElementById('copyLlmPrompt');
+    const openChatGPT = document.getElementById('openChatGPT');
+    const closeLlmPrompt = document.getElementById('closeLlmPrompt');
+    const toast = document.getElementById('toast');
+    let currentLlmPrompt = '';
+
+
+    function showToast(message){
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function getCleanChapterText(section){
+      const clone = section.cloneNode(true);
+      clone.querySelectorAll('button, .copy, .chapter-actions, .floating-tools, script, style').forEach(el => el.remove());
+      let text = clone.innerText || '';
+      text = text
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/Copy\n?/gi, '')
+        .trim();
+      const maxChars = 5200;
+      return text.length > maxChars ? text.slice(0, maxChars) + '\n\n[Context trimmed to keep the prompt browser-safe. Ask me for a deeper explanation of any specific part.]' : text;
+    }
+
+    function getChapterMeta(section){
+      const no = section.querySelector('.chapter-no')?.innerText?.trim() || 'Current';
+      const title = section.querySelector('h2')?.innerText?.trim() || section.dataset.title || 'Selected chapter';
+      const kicker = section.querySelector('.chapter-kicker')?.innerText?.trim() || 'Chapter';
+      return { no, title, kicker };
+    }
+
+    function buildLlmPrompt(section){
+      const meta = getChapterMeta(section);
+      const context = getCleanChapterText(section);
+      return `You are my senior frontend JavaScript and browser-runtime interview coach.\n\nI am studying this chapter from my Browser Async JavaScript Internals book.\n\nCHAPTER: ${meta.no} — ${meta.title}\nSECTION TYPE: ${meta.kicker}\n\nCHAPTER CONTEXT:\n"""\n${context}\n"""\n\nYour job:\n1. Explain this chapter from beginner level to senior frontend engineer level.\n2. Give me the clean mental model, then the deeper browser-runtime internals.\n3. Tell me what is most important for interviews.\n4. Add simple diagrams using text if useful.\n5. Ask me 10 interview questions from only this chapter.\n6. Include output-prediction or code-tracing questions if the chapter has code.\n7. Wait for my answers one by one, then correct me like a real interviewer.\n8. If my answer is weak, improve it into a polished senior-level answer.\n\nStart with a crisp summary of this chapter, then ask Question 1.`;
+    }
+
+    async function copyPromptToClipboard(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        showToast('Prompt copied. ChatGPT opened in a new tab.');
+      }catch(err){
+        showToast('Prompt generated. Copy it manually if clipboard is blocked.');
+      }
+    }
+
+    function chatGptUrl(prompt){
+      return 'https://chatgpt.com/?q=' + encodeURIComponent(prompt);
+    }
+
+    function openPromptInChatGPT(prompt){
+      const url = chatGptUrl(prompt);
+      const tab = window.open(url, '_blank', 'noopener,noreferrer');
+      if(!tab) showToast('Popup blocked. Use the Open ChatGPT button after copying the prompt.');
+    }
+
+    function openLlmModal(section, shouldOpenChat){
+      currentLlmPrompt = buildLlmPrompt(section);
+      const meta = getChapterMeta(section);
+      llmTitle.textContent = `Ask LLM: Chapter ${meta.no} — ${meta.title}`;
+      llmPrompt.value = currentLlmPrompt;
+      llmModal.classList.add('open');
+      document.body.classList.add('modal-open');
+      copyPromptToClipboard(currentLlmPrompt);
+      if(shouldOpenChat) openPromptInChatGPT(currentLlmPrompt);
+      setTimeout(() => llmPrompt.focus(), 120);
+    }
+
+    function closeLlmModal(){
+      llmModal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+
+    document.querySelectorAll('[data-ask-llm]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const section = btn.closest('.section');
+        if(section) openLlmModal(section, true);
+      });
+    });
+
+    llmClose.addEventListener('click', closeLlmModal);
+    closeLlmPrompt.addEventListener('click', closeLlmModal);
+    llmModal.addEventListener('click', e => { if(e.target === llmModal) closeLlmModal(); });
+    copyLlmPrompt.addEventListener('click', () => copyPromptToClipboard(llmPrompt.value || currentLlmPrompt));
+    openChatGPT.addEventListener('click', () => openPromptInChatGPT(llmPrompt.value || currentLlmPrompt));
     function setTheme(mode){
       body.classList.toggle('light', mode === 'light');
       themeBtn.textContent = mode === 'light' ? '☀️ Theme' : '🌙 Theme';
@@ -762,7 +896,7 @@ console.log("sync");</code></pre></div>
 
     menuBtn && menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
     tocLinks.forEach(a => a.addEventListener('click', () => sidebar.classList.remove('open')));
-    document.addEventListener('keydown', e => { if(e.key === 'Escape') sidebar.classList.remove('open'); });
+    document.addEventListener('keydown', e => { if(e.key === 'Escape'){ sidebar.classList.remove('open'); closeLlmModal(); } });
 
     function onScroll(){
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
